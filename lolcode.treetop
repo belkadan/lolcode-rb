@@ -1,5 +1,4 @@
 # TODO: for-in loops
-# TODO: immutable literals, cause it's not safe (?)
 # TODO: children of primitives should be treated like primitives
 # TODO: module scope??
 

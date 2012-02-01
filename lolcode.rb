@@ -78,7 +78,9 @@ module Lolcode
     end
 
     def create(var, name, val)
-      get(var).init(name, val)
+      base = get(var)
+      return base if base.is_a?(DoNotWant)
+      base.init(name, val)
     end
 
     def init(name, val)
@@ -97,7 +99,40 @@ module Lolcode
     end
 
     def win?
-      true
+      # Allows for things LIEK NOOB or LIEK FAIL
+      @parent.nil? or @parent.win?
+    end
+
+    def to_s
+      if @parent.nil?
+        super
+      else
+        @parent.to_s
+      end
+    end
+
+    def to_numeric
+      if @parent.nil?
+        return nil
+      else
+        @parent.to_numeric
+      end
+    end
+
+    def to_i
+      if @parent.nil?
+        return nil
+      else
+        @parent.to_i
+      end
+    end
+
+    def to_f
+      if @parent.nil?
+        return nil
+      else
+        @parent.to_f
+      end
     end
 
     def cast(world, val)
@@ -155,6 +190,15 @@ module Lolcode
     def noob.to_s
       'NOOB'
     end
+    def noob.to_numeric
+      0
+    end
+    def noob.to_i
+      0
+    end
+    def noob.to_f
+      0.0
+    end
     def noob.win?
       false
     end
@@ -195,6 +239,15 @@ module Lolcode
       def win.win?
         true
       end
+      def win.to_numeric
+        1
+      end
+      def win.to_i
+        1
+      end
+      def win.to_f
+        1.0
+      end
 
       fail = Troof.new(world, troof)
       def fail.to_s
@@ -202,6 +255,15 @@ module Lolcode
       end
       def fail.win?
         false
+      end
+      def fail.to_numeric
+        0
+      end
+      def fail.to_i
+        0
+      end
+      def fail.to_f
+        0.0
       end
 
       world.troof = troof
@@ -236,6 +298,22 @@ module Lolcode
 
     def to_str
       to_s
+    end
+
+    def to_i
+      @value.to_i
+    end
+
+    def to_f
+      @value.to_f
+    end
+
+    def to_numeric
+      if @value.include? '.'
+        @value.to_f
+      else
+        @value.to_i
+      end
     end
 
     def ==(other)
@@ -288,17 +366,17 @@ module Lolcode
     end
 
     def self.cast(world, val)
-      return val if val.is_a? Numbr
-      return self.new(world, 1) if val.is_a? Troof and val.win?
-      return world.numbr if val.is_a? Troof or val == world.noob
-      return self.new(world, val.to_i) if val.is_a? Numbar
-      return self.new(world, val.to_str.to_i) if val.is_a? Yarn
-
-      # FIXME: random bukkits?
-      return DoNotWant.new('Cannot make a NUMBR from ' + Yarn.cast(world, val))
+      return val if val.is_a?(self)
+      intval = val.to_i
+      if intval
+        self.new(world, intval)
+      else
+        DoNotWant.new('Cannot make a NUMBR from ' + Yarn.cast(world, val))
+      end
     end
 
     def ==(other)
+      # This should NOT account for inheritance!
       return other.to_i == to_i if other.is_a?(Numbr) or other.is_a?(Integer)
       return other.to_f == to_f if other.is_a?(Numbar) or other.is_a?(Numeric)
       return false
@@ -314,6 +392,10 @@ module Lolcode
 
     def to_s
       @value.to_s
+    end
+
+    def to_numeric
+      @value
     end
 
     def next(world)
@@ -352,14 +434,13 @@ module Lolcode
     end
 
     def self.cast(world, val)
-      return val if val.is_a? Numbar
-      return self.new(world, 1.0) if val.is_a? Troof and val.win?
-      return world.numbar if val.is_a? Troof or val == world.noob
-      return self.new(world, val.to_f) if val.is_a? Numbr
-      return self.new(world, val.to_str.to_f) if val.is_a? Yarn
-
-      # FIXME: random bukkits?
-      return DoNotWant.new('Cannot make a NUMBAR from ' + Yarn.cast(world, val))
+      return val if val.is_a?(self)
+      realval = val.to_f
+      if realval
+        self.new(world, realval)
+      else
+        DoNotWant.new('Cannot make a NUMBAR from ' + Yarn.cast(world, val))
+      end
     end
 
     def ==(other)
@@ -377,6 +458,10 @@ module Lolcode
 
     def to_s
       @value.to_s
+    end
+
+    def to_numeric
+      @value
     end
 
     def win?
@@ -460,18 +545,7 @@ module Lolcode
 
   class World
     def to_numeric(val)
-      return val.to_i if val.is_a? Numbr
-      return val.to_f if val.is_a? Numbar
-      return 1 if val.is_a? Troof and val.win?
-      return 0 if val.is_a? Troof
-
-      # FIXME: random bukkits?
-      # FIXME: having the world parameter is ugly.
-      return DoNotWant.new('Cannot make a NUMBR or NUMBAR from ' + Yarn.cast(self, val)) unless val.is_a? Yarn
-
-      val = val.to_str
-      return val.to_f if val.include? '.'
-      return val.to_i
+      val.to_numeric || DoNotWant.new('Cannot make a NUMBR or NUMBAR from ' + Yarn.cast(self, val))
     end
 
     def make_numeric(val)
@@ -563,6 +637,10 @@ module Lolcode
         end
       end
     end
+  end
+
+  def self.run_interpreter(options = {})
+    World.new.run_interpreter(options)
   end
 
   def self.load(filename)
