@@ -142,7 +142,7 @@ module Lolcode
 
   class Proc < Bukkit
     def self.register(world)
-      world.sheep = Bukkit.new(world.root)
+      world.sheep = Bukkit.new(world.bukkit)
     end
 
     def initialize(world, env, args, body)
@@ -169,7 +169,7 @@ module Lolcode
 
   class Primitive < Bukkit
     def self.register(world)
-      world.magic = Bukkit.new(world.root)
+      world.magic = Bukkit.new(world.bukkit)
     end
 
     def initialize(world, &body)
@@ -480,6 +480,34 @@ module Lolcode
       world.bukkit = root
     end
   end
+  
+  class Environment < Bukkit
+    attr_accessor :world
+
+    def initialize(world, parent)
+      super(parent)
+      @world = world
+      init('IT', world.noob)
+      init('I', self)
+    end
+
+    def it
+      ['IT']
+    end
+  end
+
+  class Module < Environment
+    def self.register(world)
+      world.module = Bukkit.new(world.bukkit)
+    end
+
+    def initialize(world)
+      super(world, world.module)
+      init('ME', self)
+      # This is a set() instead of init() because environments normally have "I" as themselves.
+      set(['I'], world.bukkit)
+    end
+  end    
 
   class World
     def initialize
@@ -493,12 +521,13 @@ module Lolcode
       Numbr.register(self)
       Numbar.register(self)
       Yarn.register(self)
+      Module.register(self)
 
       # This needs to happen AFTER all primitives have been initialized!
       liek = Primitive.new(self) do |me, args|
         Troof.new(self, me.liek?(args.first))
       end
-      root.init('liek', liek)
+      bukkit.init('liek', liek)
     end
 
     # Special-case BUKKIT cause it's the root
@@ -507,7 +536,6 @@ module Lolcode
       @bukkit.init('BUKKIT', val)
     end
     attr_reader :bukkit
-    alias_method :root, :bukkit
 
     def self.builtin(*names)
       names.each do |name|
@@ -525,25 +553,13 @@ module Lolcode
       end
     end
 
-    builtin :noob, :troof, :win, :fail, :numbr, :numbar, :yarn, :magic, :sheep
-  end
+    builtin :noob, :troof, :win, :fail, :numbr, :numbar, :yarn, :magic, :sheep, :module
 
-  class Environment < Bukkit
-    attr_accessor :world
-
-    def initialize(world, parent)
-      super(parent)
-      @world = world
-      init('IT', world.noob)
-      init('I', self)
+    def root
+      return @root if @root
+      @root = Module.new(self)
     end
 
-    def it
-      ['IT']
-    end
-  end
-
-  class World
     def to_numeric(val)
       val.to_numeric || DoNotWant.new('Cannot make a NUMBR or NUMBAR from ' + Yarn.cast(self, val))
     end
@@ -566,19 +582,20 @@ module Lolcode
       end
     end
 
-    def load(filename, env = self.root)
+    def load(filename)
       filename = filename.to_str
       filename += '.lol' unless filename.end_with? '.lol'
       # FIXME better error handling
       # Also see the exceptions raised by run()
       begin
-        run(File.read(filename), env)
+        loaded_module = Module.new(self)
+        run(File.read(filename), loaded_module)
       rescue SystemCallError
         return DoNotWant.new('CANNOT HAS ' + filename.inspect)
       rescue IOError
         return DoNotWant.new('CANNOT HAS ' + filename.inspect)
       end
-      nil
+      loaded_module
     end
 
     def run_interpreter(options = {})
@@ -644,7 +661,7 @@ module Lolcode
   end
 
   def self.load(filename)
-    World.new.load(filename)
+    !World.new.load(filename).is_a?(DoNotWant)
   end
 
   def self.run_tests(interactive = true, test_dir = '.')

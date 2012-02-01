@@ -50,13 +50,15 @@ O HAI IM primitive_test IM LIEK test
 		ME IZ checkin 1.0 IZ liek NUMBAR MKAY AN "1.0"
 		ME IZ checkin 2.0 IZ liek NUMBAR MKAY AN "2.0"
 		ME IZ checkin 2.0 IZ liek BUKKIT MKAY AN "2.0/bukkit"
+
+		CAN HAS "btw", I HAS A loaded ITZ IT
+		ME IZ checkin loaded IZ liek MODULE MKAY AN "module"
+		ME IZ checkin loaded IZ liek BUKKIT MKAY AN "module/bukkit"
 	IF U SAY SO
 
 	I IZ runnin
 KTHX
 
-BTW waiting on specification of "module scope", lexical scope, global scope...
-OBTW
 O HAI IM bukkit_test IM LIEK test
 	MAH name R "everything is a BUKKIT"
 
@@ -66,6 +68,5 @@ O HAI IM bukkit_test IM LIEK test
 
 	I IZ runnin
 KTHX
-TLDR
 
 KTHXBAI

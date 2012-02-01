@@ -1,5 +1,5 @@
 # TODO: for-in loops
-# TODO: module scope??
+# TODO: O HAI IM a'Z b
 
 # TODO: lines, sheeps
 
@@ -53,8 +53,6 @@ grammar Lolcode
 	rule stmt
 		action:(
 			obtw
-		/
-			can_has
 		/
 			has_a
 		/
@@ -120,7 +118,7 @@ grammar Lolcode
 				lambda {|env|
 					name_val = name.call(env)
 					return name_val if name_val.is_a?(DoNotWant)
-					env.world.load(name_val, env)
+					env.world.load(name_val)
 				}
 			end
 		}
@@ -169,7 +167,6 @@ grammar Lolcode
 	end
 
 	rule o_hai_im
-		# FIXME replace ident with var someday?
 		'O' w 'HAI' w 'IM' w ident
 		liek_clause:(w 'IM' w 'LIEK' w parent:expr)?
 		eos
@@ -184,12 +181,12 @@ grammar Lolcode
 					return parent if parent.is_a?(DoNotWant)
 					new_bukkit = Bukkit.new(parent)
 					if body
-						bukkit_env = Environment.new(env.world, new_bukkit)
+						bukkit_env = Environment.new(env.world, env)
 						bukkit_env.set(['I'], new_bukkit)
 						bukkit_env.init('ME', new_bukkit)
-						body.call(bukkit_env)
+						problem = body.call(bukkit_env)
 					end
-					env.create(['I'], name, new_bukkit)
+					problem || env.create(['I'], name, new_bukkit)
 				}
 			end
 		}
@@ -849,7 +846,7 @@ grammar Lolcode
 	end
 
 	rule simple_expr
-		builtin_op 
+		builtin_op
 	/
 		var {
 			def compile
@@ -873,6 +870,8 @@ grammar Lolcode
 		variadic_op
 	/
 		cast
+	/
+		can_has
 	end
 
 	rule monadic_op

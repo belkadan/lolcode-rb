@@ -6,7 +6,7 @@ O HAI IM test
 	KTHX
 
 	HOW IZ I failin YR caption
-		I HAS A problem ITZ LIEK failure
+		I HAS A problem ITZ LIEK MAH failure
 		problem'Z reason R caption
 		DO NOT WANT problem
 	IF U SAY SO
@@ -36,7 +36,7 @@ O HAI IM test
 		PLZ
 			ME IZ testin MKAY
 			VISIBLE WIN ":>" MAH name
-		O NOES ITZ A failure
+		O NOES ITZ A test'Z failure
 			I HAS A problem ITZ IT'Z reason
 			VISIBLE FAIL ":>" MAH name
 			VISIBLE ":>" problem ":)"
@@ -77,7 +77,7 @@ O HAI IM meta_test IM LIEK test
 		PLZ
 			fail_test IZ testin
 			ME IZ failin "expected a problem from fail_test"
-		O NOES ITZ A failure
+		O NOES ITZ A test'Z failure
 			ME IZ checkpointin
 		KTHX
 		ME IZ expectpointin 1
@@ -85,7 +85,7 @@ O HAI IM meta_test IM LIEK test
 		PLZ
 			win_test IZ testin
 			ME IZ checkpointin
-		O NOES ITZ A failure
+		O NOES ITZ A test'Z failure
 			ME IZ failin "expected no problems from win_test"
 		KTHX
 		ME IZ expectpointin 2
@@ -93,7 +93,7 @@ O HAI IM meta_test IM LIEK test
 		PLZ
 			direct_fail_test IZ testin
 			ME IZ failin "expected a problem from direct_fail_test"
-		O NOES ITZ A failure
+		O NOES ITZ A test'Z failure
 			ME IZ checkpointin
 		KTHX
 		ME IZ expectpointin 3
