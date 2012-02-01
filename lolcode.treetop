@@ -179,6 +179,7 @@ grammar Lolcode
 					base = name.call(env)
 					return base if base.is_a?(DoNotWant)
 					slot = base.pop
+					base = Environment::I if base.empty?
 
 					parent = if parent_var then parent_var.call(env) else env.world.bukkit end
 					return parent if parent.is_a?(DoNotWant)
@@ -186,8 +187,8 @@ grammar Lolcode
 					new_bukkit = Bukkit.new(parent)
 					if body
 						bukkit_env = Environment.new(env.world, env)
-						bukkit_env.set(['I'], new_bukkit)
-						bukkit_env.init('ME', new_bukkit)
+						bukkit_env.set(Environment::I, new_bukkit)
+						bukkit_env.init(Environment::Me, new_bukkit)
 						problem = body.call(bukkit_env)
 					end
 					problem || env.create(base, slot, new_bukkit)
@@ -1143,7 +1144,7 @@ grammar Lolcode
 				lambda {|env|
 					pieces = rest.call(env)
 					return pieces if pieces.is_a?(DoNotWant)
-					pieces.unshift('ME')
+					pieces.unshift(Environment::Me)
 				}
 			end
 		}

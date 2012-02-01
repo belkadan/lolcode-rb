@@ -78,9 +78,6 @@ module Lolcode
     end
 
     def create(var, name, val)
-      # In a O HAI IM block, the current environment and 'I' are different!
-      # The only purpose of the current environment is to pass through to the enclosing scope.
-      var = ['I'] if var.empty?
       base = get(var)
       return base if base.is_a?(DoNotWant)
       base.init(name, val)
@@ -158,7 +155,7 @@ module Lolcode
     def call(me, arg_values)
       # FIXME this is not proper Ruby
       new_env = Environment.new(@env.world, @env)
-      new_env.init('ME', me)
+      new_env.init(Environment::Me, me)
       @args.zip(arg_values).each do |var, val|
         new_env.init(var, val)
       end
@@ -494,8 +491,11 @@ module Lolcode
       init('I', self)
     end
 
-    def it
-      ['IT']
+    # It's not pretty that Me is not an array...
+    unless self.const_defined? :Me
+      It = ['IT']
+      I = ['I']
+      Me = 'ME'
     end
   end
 
@@ -506,9 +506,9 @@ module Lolcode
 
     def initialize(world)
       super(world, world.module)
-      init('ME', self)
+      init(Environment::Me, self)
       # This is a set() instead of init() because environments normally have "I" as themselves.
-      set(['I'], world.bukkit)
+      set(Environment::I, world.bukkit)
     end
   end    
 
