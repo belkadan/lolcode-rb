@@ -49,8 +49,7 @@ HOW IZ I decoding YR bits AN YR tree
 		OIC
 	IF U SAY SO
 
-	BTW FIXME lexical scope?
-	HOW IZ I stepping YR bits AN YR branch AN YR tree
+	HOW IZ I stepping YR bits AN YR branch
 		bits, O RLY?
 		YA RLY
 			I IZ choosing bits'Z first AN branch
@@ -58,14 +57,14 @@ HOW IZ I decoding YR bits AN YR tree
 			choice IZ liek leaf, O RLY?
 			YA RLY
 				VISIBLE choice'Z symbol!
-				I IZ stepping bits'Z rest AN tree AN tree
+				I IZ stepping bits'Z rest AN tree
 			NO WAI
-				I IZ stepping bits'Z rest AN choice AN tree
+				I IZ stepping bits'Z rest AN choice
 			OIC
 		OIC
 	IF U SAY SO
 
-	I IZ stepping YR bits AN YR tree AN YR tree
+	I IZ stepping YR bits AN YR tree
 	VISIBLE "", BTW newline
 IF U SAY SO
 
