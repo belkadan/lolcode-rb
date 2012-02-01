@@ -1,0 +1,41 @@
+HAI 1.3
+
+1, O RLY?
+	YA RLY, VISIBLE "yes"
+OIC
+
+0, O RLY?
+	YA RLY, VISIBLE "no"
+	NO WAI, VISIBLE "yes"
+OIC
+
+1, O RLY?
+	YA RLY, VISIBLE "yes"
+	MEBBE 1, VISIBLE "no"
+	NO WAI, VISIBLE "no"
+OIC
+
+0, O RLY?
+	YA RLY, VISIBLE "no"
+	MEBBE 1, VISIBLE "yes"
+	NO WAI, VISIBLE "no"
+OIC
+
+0, O RLY?
+	YA RLY, VISIBLE "no"
+	MEBBE 0, VISIBLE "no"
+	NO WAI, VISIBLE "yes"
+OIC
+
+0, O RLY?
+	YA RLY, VISIBLE "no"
+	MEBBE 0, VISIBLE "no"
+OIC
+
+0, O RLY?
+	YA RLY, VISIBLE "no"
+	MEBBE 0, VISIBLE "no"
+	MEBBE 1, VISIBLE "yes"
+OIC
+
+KTHXBYE

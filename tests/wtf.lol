@@ -1,0 +1,62 @@
+HAI 1.3
+
+1, WTF?
+	OMG 1, VISIBLE "1"
+OIC
+
+1, WTF?
+	OMG 2, VISIBLE "no"
+OIC
+
+1, WTF?
+	OMG 2, VISIBLE "no"
+	OMG 1, VISIBLE "2"
+	OMG 0, VISIBLE "3"
+OIC
+
+1, WTF?
+	OMG 2, VISIBLE "no"
+	OMG 3, VISIBLE "no"
+	OMG 1, VISIBLE "4"
+OIC
+
+1, WTF?
+	OMG 1, VISIBLE "5"
+	OMG 2, VISIBLE "6", GTFO
+	OMG 3, VISIBLE "no"
+OIC
+
+1, WTF?
+	OMG 1, VISIBLE "7", GTFO
+	OMGWTF, VISIBLE "no"
+OIC
+
+1, WTF?
+	OMG 2, VISIBLE "no", GTFO
+	OMGWTF, VISIBLE "8"
+OIC
+
+1, WTF?
+	OMG 2, VISIBLE "no"
+	OMG 1, VISIBLE "9"
+	OMG 0, VISIBLE "10"
+	OMGWTF, VISIBLE "11"
+OIC
+
+HOW IZ I testin
+	1, WTF?
+		OMG 1, FOUND YR "12"
+		OMGWTF, "no"
+	OIC
+	FOUND IT
+IF U SAY SO
+
+I IZ testin MKAY, VISIBLE IT
+
+BTW variable interpolation does not happen in OMG clauses
+SMOOSH "::" AN "{var}" MKAY, WTF?
+	OMG ":{var}", VISIBLE "13", GTFO
+	OMGWTF, VISIBLE "no"
+OIC
+
+KTHXBYE

@@ -1,0 +1,7 @@
+HAI 1.3
+
+I HAS A var ITZ FAIL
+SRS "var" R WIN
+VISIBLE SRS SMOOSH "v" AN "ar"
+
+KTHXBAI

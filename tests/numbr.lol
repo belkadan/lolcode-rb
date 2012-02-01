@@ -1,0 +1,48 @@
+HAI 1.3
+
+CAN HAS "test"
+
+O HAI IM op_test IM LIEK test
+	MAH name R "NUMBR ops"
+
+	HOW IZ I testin
+		ME IZ checkin BOTH SAEM 3 AN SUM OF 1 AN 2 AN "SUM" MKAY
+		ME IZ checkin BOTH SAEM 2 AN SUM OF 5 AN -3 AN "SUM negatives" MKAY
+
+		ME IZ checkin BOTH SAEM 2 AN DIFF OF 5 AN 3 AN "DIFF" MKAY
+		ME IZ checkin BOTH SAEM 15 AN PRODUKT OF 5 AN 3 AN "PRODUKT" MKAY
+		ME IZ checkin BOTH SAEM 3 AN QUOSHUNT OF 10 AN 3 AN "QUOSHUNT" MKAY
+		ME IZ checkin BOTH SAEM 1 AN MOD OF 10 AN 3 AN "MOD" MKAY
+
+		ME IZ checkin BOTH SAEM 10 AN BIGGR OF 10 AN 3 AN "BIGGR" MKAY
+		ME IZ checkin BOTH SAEM 10 AN BIGGR OF 3 AN 10 AN "BIGGR" MKAY
+		ME IZ checkin BOTH SAEM 3 AN SMALLR OF 10 AN 3 AN "SMALLR" MKAY
+		ME IZ checkin BOTH SAEM 3 AN SMALLR OF 3 AN 10 AN "SMALLR" MKAY
+	IF U SAY SO
+
+	I IZ runnin
+KTHX
+
+O HAI IM div_zero_test IM LIEK test
+	MAH name R "DIV 0"
+
+	HOW IZ I testin
+		PLZ
+			QUOSHUNT OF 10 AN 0
+		O NOES WIN
+			ME IZ checkpointin
+		KTHX
+		ME IZ expectpointin 1
+
+		PLZ
+			MOD OF 10 AN 0
+		O NOES WIN
+			ME IZ checkpointin
+		KTHX
+		ME IZ expectpointin 2
+	IF U SAY SO
+
+	I IZ runnin
+KTHX
+
+KTHXBAI

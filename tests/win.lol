@@ -1,0 +1,13 @@
+HAI 1.3
+
+WIN, O RLY?
+	YA RLY, VISIBLE "yes"
+	NO WAI, VISIBLE "no"
+OIC
+
+FAIL, O RLY?
+	YA RLY, VISIBLE "no"
+	NO WAI, VISIBLE "yes"
+OIC
+
+KTHXBYE

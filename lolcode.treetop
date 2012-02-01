@@ -1,0 +1,1335 @@
+# TODO: for-in loops
+# TODO: immutable literals, cause it's not safe (?)
+# TODO: children of primitives should be treated like primitives
+# TODO: module scope??
+
+# TODO: lines, sheeps
+
+grammar Lolcode
+	rule program
+		hai
+		program_body
+	end
+
+	rule program_body
+		kthxbye
+	/
+		(w? (stmt / btw / "\n") program_body)
+	end
+
+	rule program_fragment
+		ignored_line*
+		w?
+		content:(
+			kthxbye {
+				def compile
+					nil
+				end
+			}
+		/
+			stmt
+		)
+		{
+			def compile
+				content.compile
+			end
+		}
+	end
+
+	rule blank_line
+		w? "\n"
+	end
+
+	rule ignored_line
+		w? (btw / "\n")
+	end
+
+	rule hai
+		"HAI" w (ident / "1.3") blank_line
+	end
+
+	rule kthxbye
+		'KTHX' ('BYE'/'BAI') [ \t\n]*
+	end
+
+	rule stmt
+		action:(
+			obtw
+		/
+			can_has
+		/
+			has_a
+		/
+			o_hai_im
+		/
+			how_iz
+		/
+			visible
+		/
+			gimmeh
+		/
+			assign
+		/
+			cast_stmt
+		/
+			o_rly
+		/
+			wtf
+		/
+			plz
+		/
+			found_yr
+		/
+			im_in_yr
+		/
+			gtfo
+		/
+			stmt_expr
+		)
+		eos
+		{
+			def compile
+				action.compile
+			end
+		}
+	end
+
+	rule btw
+		"BTW" [^\n]* "\n"
+	end
+
+	rule eos
+		(w? [,\n])
+	/
+		(w btw)
+	end
+
+	rule obtw
+		"OBTW" [ \t\n]+ (!("TLDR" eos) [^ \t\n]+ [ \t\n]+)* "TLDR"
+		{
+			def compile
+				# FIXME ugh
+				lambda {|env| nil}
+			end
+		}
+	end
+
+	rule can_has
+		"CAN" w "HAS" w yarn_literal
+		{
+			def compile
+				name = yarn_literal.compile
+				lambda {|env|
+					name_val = name.call(env)
+					return name_val if name_val.is_a?(DoNotWant)
+					Lolcode.load(name_val, env)
+				}
+			end
+		}
+	end
+
+	rule has_a
+		var w "HAS" w "A" w ident
+		initializer:(
+			w "ITZ" w "LIEK" w ("A" w)? parent_ref:expr {
+				def liek?
+					true
+				end
+			}
+		/
+			w "ITZ" w expr {
+				def liek?
+					false
+				end
+			}
+		)?
+		{
+			def compile
+				bukkit = var.compile
+				slot = ident.text_value
+				if initializer.empty?
+					initial = lambda {|env| Lolcode::noob}
+				elsif initializer.liek?
+					parent = initializer.parent_ref.compile
+					initial = lambda {|env|
+						parent_val = parent.call(env)
+						return parent_val if parent_val.is_a?(DoNotWant)
+						Bukkit.new(parent_val)
+					}
+				else
+					initial = initializer.expr.compile
+				end
+				lambda {|env|
+					bukkit_val = bukkit.call(env)
+					return bukkit_val if bukkit_val.is_a?(DoNotWant)
+					initial_val = initial.call(env)
+					return initial_val if initial_val.is_a?(DoNotWant)
+					env.create(bukkit_val, slot, initial_val);
+				}
+			end
+		}
+	end
+
+	rule o_hai_im
+		# FIXME replace ident with var someday?
+		'O' w 'HAI' w 'IM' w ident
+		liek_clause:(w 'IM' w 'LIEK' w parent:expr)?
+		eos
+		o_hai_im_body
+		{
+			def compile
+				name = ident.text_value
+				body = o_hai_im_body.compile
+				parent_var = liek_clause.parent.compile unless liek_clause.empty?
+				lambda {|env|
+					# FIXME ugly?
+					parent = if parent_var then parent_var.call(env) else env.root end
+					return parent if parent.is_a?(DoNotWant)
+					new_bukkit = Bukkit.new(parent)
+					if body
+						bukkit_env = Environment.new(new_bukkit)
+						bukkit_env.set(['I'], new_bukkit)
+						bukkit_env.init('ME', new_bukkit)
+						body.call(bukkit_env)
+					end
+					env.create(['I'], name, new_bukkit)
+				}
+			end
+		}
+	end
+
+	rule o_hai_im_body
+		ignored_line*
+		w? 'KTHX'
+		{
+			def compile
+				nil
+			end
+		}
+	/
+		ignored_line*
+		w? stmt
+		body:o_hai_im_body
+		{
+			def compile
+				action = stmt.compile
+				rest = body.compile
+				if rest
+					lambda {|env| action.call(env) || rest.call(env) }
+				else
+					action
+				end
+			end
+		}
+	end
+
+	rule how_iz
+		'HOW' w 'IZ' w var w ident
+		args:(w ('YR' w)? ident
+			rest:(w 'AN' w ('YR' w)? ident)*
+		)?
+		eos
+		function_body
+		{
+			def compile
+				bukkit = var.compile
+				slot = ident.text_value
+				arg_names = []
+				unless args.empty?
+					arg_names.push args.ident.text_value
+					args.rest.elements.each do |arg|
+						arg_names.push arg.ident.text_value
+					end
+				end
+				body = function_body.compile
+				lambda {|env|
+					bukkit_val = bukkit.call(env)
+					return bukkit_val if bukkit_val.is_a?(DoNotWant)
+					proc = Lolcode::Proc.new(env, arg_names, body)
+					env.create(bukkit_val, slot, proc);
+				}
+			end
+		}
+	end
+
+	rule function_body
+		ignored_line*
+		w? 'IF' w 'U' w 'SAY' w 'SO'
+		{
+			def compile
+				# Falling off the end of a function body >> FOUND IT
+				lambda {|env| Result.new(env.get(env.it)) }
+			end
+		}
+	/
+		ignored_line*
+		w? stmt
+		body:function_body
+		{
+			def compile
+				action = stmt.compile
+				rest = body.compile					
+				lambda {|env| action.call(env) || rest.call(env) }
+			end
+		}
+	end
+
+	rule visible
+		"VISIBLE" w expr
+		rest:(w expr)*
+		omit_newline:(w? '!')?
+		{
+			def compile
+				args = [expr.compile]
+				rest.elements.each do |arg|
+					args.push arg.expr.compile
+				end
+				lambda {|env|
+					error = args.each do |arg|
+						arg_val = arg.call(env)
+						break arg_val if arg_val.is_a?(DoNotWant)
+						arg_yarn = Yarn.cast(arg_val)
+						break arg_yarn if arg_yarn.is_a?(DoNotWant)
+						print arg_yarn
+					end
+					return error if error.is_a?(DoNotWant)
+					puts '' if omit_newline.empty?
+					nil
+				}
+			end
+		}
+	end
+
+	rule gimmeh
+		"GIMMEH" w var
+		{
+			def compile
+				arg = var.compile
+				lambda {|env|
+					arg_val = arg.call(env)
+					return arg_val if arg_val.is_a?(DoNotWant)
+					env.set(arg_val, gets())
+				}
+			end
+		}
+	end
+
+	rule assign
+		var w 'R' w expr
+		{
+			def compile
+				sink = var.compile
+				source = expr.compile
+				lambda {|env|
+					sink_val = sink.call(env)
+					return sink_val if sink_val.is_a?(DoNotWant)
+					source_val = source.call(env)
+					return source_val if source_val.is_a?(DoNotWant)
+					env.set(sink_val, source_val)
+				}
+			end
+		}
+	end
+
+	rule cast_stmt
+		var:var w 'IS' w 'NOW' w 'A' w typename:var
+		{
+			def compile
+				mem = var.compile
+				type = typename.compile
+				lambda {|env|
+					# It is conceivable that the variable could be SRSing itself...
+					# Fix the reference before doing any modification.
+					curr_var = mem.call(env)
+					return curr_var if curr_var.is_a?(DoNotWant)
+					type_var = type.call(env)
+					return type_var if type_var.is_a?(DoNotWant)
+					type_val = env.get(type_var)
+					return type_val if type_val.is_a?(DoNotWant)
+					curr_val = env.get(curr_var)
+					return curr_val if curr_val.is_a?(DoNotWant)
+					val = type_val.cast(curr_val)
+					return val if val.is_a?(DoNotWant)
+					env.set(curr_var, val)
+				}
+			end
+		}
+	end
+
+	rule stmt_expr
+		expr
+		{
+			def compile
+				value = super
+				lambda {|env|
+					val = value.call(env)
+					return val if val.is_a?(DoNotWant)
+					env.set(env.it, val)
+				}
+			end
+		}
+	end
+
+	rule o_rly
+		"O" w "RLY?" eos
+		blank_line*
+		w? "YA" w "RLY" eos
+		body:o_rly_body
+		mebbes:(
+			w? "MEBBE" w expr eos
+			body:o_rly_body
+		)*
+		no_wai:(
+			w? "NO" w "WAI" eos
+			body:no_wai_body
+		)?
+		w? "OIC"
+		{
+			def compile
+				consequent = body.compile
+				alternatives = mebbes.elements.map do |mebbe|
+					[mebbe.expr.compile, mebbe.body.compile]
+				end
+				alternatives.push [nil, no_wai.body.compile] unless no_wai.empty?
+				lambda {|env|
+					if Lolcode.win? env.get(env.it)
+						consequent.call(env) if consequent
+					else
+						chosen = alternatives.find do |alt|
+							if alt[0]
+								test = alt[0].call(env)
+								break test if test.is_a?(DoNotWant)
+								Lolcode.win?(test)
+							else
+								true
+							end
+						end
+						return chosen if chosen.is_a?(DoNotWant)
+						chosen[1].call(env) if chosen and chosen[1]
+					end
+				}
+			end
+		}
+	end
+
+	rule o_rly_body
+		ignored_line*
+		&(w? (("MEBBE" w) / ("NO" w "WAI") / "OIC"))
+		{
+			def compile
+				nil
+			end
+		}
+	/
+		ignored_line*
+		w? stmt
+		body:o_rly_body
+		{
+			def compile
+				action = stmt.compile
+				rest = body.compile
+				if rest
+					lambda {|env| action.call(env) || rest.call(env) }
+				else
+					action
+				end
+			end
+		}
+	end
+
+	rule no_wai_body
+		ignored_line*
+		&(w? "OIC") ''
+		{
+			def compile
+				nil
+			end
+		}
+	/
+		ignored_line*
+		w? stmt
+		body:no_wai_body
+		{
+			def compile
+				action = stmt.compile
+				rest = body.compile
+				if rest
+					lambda {|env| action.call(env) || rest.call(env) }
+				else
+					action
+				end
+			end
+		}
+	end
+
+	rule wtf
+		"WTF?" eos
+		blank_line*
+		omgs:(
+			w? "OMG" w literal eos
+			body:omg_body
+		)+
+		omgwtf:(
+			w? "OMGWTF" eos
+			body:omgwtf_body
+		)?
+		w? "OIC"
+		{
+			def compile
+				choices = omgs.elements.map do |omg|
+					[omg.literal.value, omg.body.compile]
+				end
+				choices.push [nil, omgwtf.body.compile] unless omgwtf.empty?
+				lambda {|env|
+					test_var = env.get(env.it)
+					result = nil
+					choices.drop_while do |literal, body|
+						literal and test_var != literal
+					end.each do |literal, body|
+						result = body.call(env) if body
+						if result
+							result = nil if result.is_a? GTFO and result.name.nil?
+							break
+						end
+					end
+					result
+				}
+			end
+		}
+	end
+
+	rule omg_body
+		ignored_line*
+		&(w? (("OMG" w) / ("OMGWTF") / "OIC")) ''
+		{
+			def compile
+				nil
+			end
+		}
+	/
+		w? stmt
+		body:omg_body
+		{
+			def compile
+				action = stmt.compile
+				rest = body.compile
+				if rest
+					lambda {|env| action.call(env) || rest.call(env) }
+				else
+					action
+				end
+			end
+		}
+	end
+
+	rule omgwtf_body
+		ignored_line*
+		&(w? "OIC") ''
+		{
+			def compile
+				nil
+			end
+		}
+	/
+		ignored_line*
+		w? stmt
+		body:omgwtf_body
+		{
+			def compile
+				action = stmt.compile
+				rest = body.compile
+				if rest
+					lambda {|env| action.call(env) || rest.call(env) }
+				else
+					action
+				end
+			end
+		}
+	end
+
+	rule plz
+		"PLZ" eos
+		body:plz_body
+		o_noeses:(
+			w? "O" w "NOES" w 
+			condition:(
+				"ITZ" w "A" w kind:expr {
+					def liek?
+						true
+					end
+				}
+			/
+				expr {
+					def liek?
+						false
+					end
+				}
+			)
+			eos
+			body:plz_body
+		)*
+		o_wel:(
+			w? "O" w "WEL" eos
+			body:o_wel_body
+		)?
+		w? "KTHX"
+		{
+			def compile
+				action = body.compile
+				handlers = o_noeses.elements.map do |o_noes|
+					if o_noes.condition.liek?
+						parent = o_noes.condition.kind.compile
+						cond = lambda {|env|
+							# We can't just test this directly because
+							# someone could override their 'liek' slot
+							parent_val = parent.call(env)
+							return parent_val if parent_val.is_a?(DoNotWant)
+							problem = env.get(env.it)
+							problem.get(['liek']).call(problem, [parent_val])
+						}
+					else
+						cond = o_noes.condition.compile
+					end
+					[cond, o_noes.body.compile]
+				end
+				cleanup = o_wel.body.compile unless o_wel.empty?
+				lambda {|env|
+					result = action.call(env) if action
+					if result and result.is_a? DoNotWant
+						env.set(env.it, result.value)
+						chosen = handlers.find do |handler|
+							test = handler[0].call(env)
+							break test if test.is_a?(DoNotWant)
+							Lolcode.win?(test)
+						end
+						# FIXME nested exceptions...which takes priority?
+						# This says the O NOES test's exception wins...
+						if chosen.is_a?(DoNotWant)
+							result = chosen
+						elsif chosen and chosen[1]
+							result = chosen[1].call(env)
+						end
+					end
+					# ...but this says the cleanup clause's exception loses
+					cleanup_result = cleanup.call(env) if cleanup
+					result || cleanup_result
+				}
+			end
+		}
+	end
+
+	rule plz_body
+		ignored_line*
+		&(w? (("O" w "NOES") / ("O" w "WEL") / "KTHX"))
+		{
+			def compile
+				nil
+			end
+		}
+	/
+		ignored_line*
+		w? stmt
+		body:plz_body
+		{
+			def compile
+				action = stmt.compile
+				rest = body.compile
+				if rest
+					lambda {|env| action.call(env) || rest.call(env) }
+				else
+					action
+				end
+			end
+		}
+	end
+
+	rule o_wel_body
+		ignored_line*
+		&(w? "KTHX")
+		{
+			def compile
+				nil
+			end
+		}
+	/
+		ignored_line*
+		w? stmt
+		body:o_wel_body
+		{
+			def compile
+				action = stmt.compile
+				rest = body.compile
+				if rest
+					lambda {|env| action.call(env) || rest.call(env) }
+				else
+					action
+				end
+			end
+		}
+	end
+
+	rule found_yr
+		op:(
+			'FOUND' w ('YR' w)? {
+				def type
+					Result
+				end
+			}
+		/
+			'DO' w 'NOT' w 'WANT' w {
+				def type
+					DoNotWant
+				end
+			}
+		)
+		expr
+		{
+			def compile
+				value = expr.compile
+				result_class = op.type
+				lambda {|env|
+					val = value.call(env)
+					return val if val.is_a?(DoNotWant)
+					result_class.new(val)
+				}
+			end
+		}
+	end
+
+	rule gtfo
+		op:(
+			'GTFO' {
+				def type
+					GTFO
+				end
+			}
+		/
+			'WHATEVER' {
+				def type
+					Whatever
+				end
+			}
+		)
+		arg:(w ident)?
+		{
+			def compile
+				label = arg.ident.text_value unless arg.empty?
+				result_class = op.type
+				lambda {|env| result_class.new(label) }
+			end
+		}
+	end
+
+	rule im_in_yr
+		# FIXME for-in mode?
+		'IM' w 'IN' w 'YR' w ident
+		increment:(
+			w
+			dir:(
+				'UPPIN' {
+					def op
+						:next
+					end
+				}
+			/
+				'NERFIN' {
+					def op
+						:pred
+					end
+				}
+			)
+			w ('YR' w)? var {
+				def compile
+					loop_var = var.compile
+					incr = dir.op
+					lambda {|env|
+						# It is conceivable that the loop variable could be SRSing itself...
+						# Fix the reference before doing any modification.
+						curr_var = loop_var.call(env)
+						return curr_var if curr_var.is_a?(DoNotWant)
+						curr_val = env.get(curr_var)
+						return curr_val if curr_val.is_a?(DoNotWant)
+						val = Numbr.cast(curr_val)
+						return val if val.is_a?(DoNotWant)
+						env.set(curr_var, val.send(incr))
+					}
+				end
+			}
+		)?
+		condition:(
+			w
+			waiting_for:(
+				'TIL' {
+					def value
+						false
+					end
+				}
+			/
+				'WILE' {
+					def value
+						true
+					end
+				}
+			)
+			w expr {
+				def compile
+					cond = expr.compile
+					final = waiting_for.value
+					lambda {|env|
+						test = cond.call(env)
+						return test if test.is_a?(DoNotWant)
+						Lolcode.win?(test) == final
+					}
+				end
+			}
+		)?
+		eos
+		loop_body {
+			def compile
+				body = loop_body.compile
+				test = condition.compile unless condition.empty?
+				incr = increment.compile unless increment.empty?
+				name = ident.text_value
+				lambda {|env|
+					while true
+						if test
+							test_val = test.call(env)
+							return test_val if test_val.is_a?(DoNotWant)
+							break unless test_val
+						end
+
+						result = body.call(env) if body
+						if result
+							if result.is_a? GTFO
+								break if result.name.nil? or result.name == name
+								return result
+							elsif result.is_a? Whatever
+								break if result.name and result.name != name
+								# otherwise, just jump to the increment, which is right
+							else
+								return result
+							end
+						end
+						incr_result = incr.call(env) if incr
+						return incr_result if incr_result.is_a?(DoNotWant)
+					end
+					nil
+				}
+			end
+		}
+	end
+
+	rule loop_body
+		ignored_line*
+		w? 'KTHX'
+		{
+			def compile
+				nil
+			end
+		}
+	/
+		ignored_line*
+		w? stmt
+		body:loop_body
+		{
+			def compile
+				action = stmt.compile
+				rest = body.compile
+				if rest
+					lambda {|env| action.call(env) || rest.call(env) }
+				else
+					action
+				end
+			end
+		}
+	end
+
+	rule expr
+		function_call
+	/
+		# Why? Because otherwise function_calls are left-recursive...
+		simple_expr
+	end
+
+	rule simple_expr
+		builtin_op 
+	/
+		var {
+			def compile
+				var_ref = super
+				lambda {|env|
+					runtime_var = var_ref.call(env)
+					return runtime_var if runtime_var.is_a?(DoNotWant)
+					env.get(runtime_var)
+				}
+			end
+		}
+	/
+		literal
+	end
+
+	rule builtin_op
+		monadic_op
+	/
+		dyadic_op
+	/
+		variadic_op
+	/
+		cast
+	end
+
+	rule monadic_op
+		op_name:(
+			'NOT' {
+				def op
+					lambda {|a| Troof.new(!Lolcode.win?(a)) }
+				end
+			}
+		)
+		w expr
+		{
+			def compile
+				op = op_name.op
+				arg = expr.compile
+				lambda {|env|
+					arg_val = arg.call(env)
+					return arg_val if arg_val.is_a?(DoNotWant)
+					op.call(arg_val)
+				}
+			end
+		}
+	end
+
+	rule dyadic_op
+		op_name:(
+			name_part:( 'SUM' {
+					def op
+						lambda {|a,b| a + b }
+					end
+				}
+				/ 'DIFF' {
+					def op
+						lambda {|a,b| a - b }
+					end
+				}
+				/ 'PRODUKT' {
+					def op
+						lambda {|a,b| a * b }
+					end
+				}
+				/ 'QUOSHUNT' {
+					def op
+						lambda {|a,b|
+							return DoNotWant.new('DIVIDE BY ZERO') if b.zero?
+							a / b
+						}
+					end
+				}
+				/ 'MOD' {
+					def op
+						lambda {|a,b|
+							return DoNotWant.new('DIVIDE BY ZERO') if b.zero?
+							a % b
+						}
+					end
+				}
+				/ 'BIGGR' {
+					def op
+						lambda {|a,b| [a, b].max }
+					end
+				}
+				/ 'SMALLR' {
+					def op
+						lambda {|a,b| [a, b].min }
+					end
+				}
+			)
+			w 'OF' {
+				def op
+					real_op = name_part.op
+					lambda {|a,b|
+						left = Lolcode.to_numeric(a)
+						return left if left.is_a?(DoNotWant)
+						right = Lolcode.to_numeric(b)
+						return right if right.is_a?(DoNotWant)
+						result = real_op.call(left, right)
+						return result if result.is_a?(DoNotWant)
+						Lolcode.make_numeric(result)
+					}
+				end
+			}
+		/
+			name_part:('BOTH' {
+					def op
+						:&
+					end
+				}
+				/ 'EITHER' {
+					def op
+						:|
+					end
+				}
+				/ 'WON' {
+					def op
+						:^
+					end
+				}
+			)
+			w 'OF' {
+				def op
+					op_name = name_part.op
+					lambda {|a,b|
+						left = Lolcode.win?(a)
+						right = Lolcode.win?(b)
+						Troof.new(left.send(op_name, right))
+					}
+				end
+			}
+		/
+			'BOTH' w 'SAEM' {
+				def op
+					lambda {|a,b| Troof.new(a == b) }
+				end
+			}
+		/
+			'DIFFRINT' {
+				def op
+					lambda {|a,b| Troof.new(a != b) }
+				end
+			}
+		)
+		w left:expr w ('AN' w)? right:expr
+		{
+			def compile
+				op = op_name.op
+				lexpr = left.compile
+				rexpr = right.compile
+				lambda {|env|
+					lval = lexpr.call(env)
+					return lval if lval.is_a?(DoNotWant)
+					rval = rexpr.call(env)
+					return rval if rval.is_a?(DoNotWant)
+					op.call(lval, rval)
+				}
+			end
+		}
+	end
+
+	rule variadic_op
+		op_name:(
+			name_part:(
+				'ALL' {
+					def msg
+						:all?
+					end
+				}
+			/
+				'ANY' {
+					def msg
+						:any?
+					end
+				}
+			)
+			w 'OF'
+			{
+				def op
+					lambda {|args|
+						Troof.new(args.map {|x| Lolcode.win?(x) }.send(name_part.msg))
+					}
+				end
+			}
+		/
+			'SMOOSH'
+			{
+				def op
+					lambda {|args|
+						yarns = args.map do |arg|
+							casted = Yarn.cast(arg)
+							break casted if casted.is_a?(DoNotWant)
+							casted
+						end
+						return yarns if yarns.is_a?(DoNotWant)
+						Yarn.new(yarns.join)
+					}
+				end
+			}
+		)
+		w first:expr
+		rest:(w !'MKAY' ('AN' w)? expr)*
+		mkay
+		{
+			def compile
+				op = op_name.op
+				args = [first.compile]
+				rest.elements.each do |arg|
+					args.push arg.expr.compile
+				end
+				lambda {|env|
+					arg_vals = args.map do |arg|
+						val = arg.call(env)
+						break val if val.is_a?(DoNotWant)
+						val
+					end
+					return arg_vals if arg_vals.is_a?(DoNotWant)
+					op.call(arg_vals)
+				}
+			end
+		}
+	end
+
+	rule mkay
+		w "MKAY"
+	/
+		&eos
+	end
+
+	rule cast
+		'MAEK' w expr w ('A' w)? var
+		{
+			def compile
+				val = expr.compile
+				type = var.compile
+				lambda {|env|
+					type_var = type.call(env)
+					return type_var if type_var.is_a?(DoNotWant)
+					type_val = env.get(type_var)
+					return type_val if type_val.is_a?(DoNotWant)
+					real_val = val.call(env)
+					return real_val if real_val.is_a?(DoNotWant)
+					type_val.cast(real_val)
+				}
+			end
+		}
+	end
+
+	rule function_call
+		simple_expr w 'IZ' w ident
+		args:(w !'MKAY' ('YR' w)? expr
+			rest:(w 'AN' w ('YR' w)? expr)*
+		)?
+		mkay
+		{
+			def compile
+				me = simple_expr.compile
+				name = ident.text_value
+				arg_exprs = []
+				unless args.empty?
+					arg_exprs.push args.expr.compile
+					args.rest.elements.each do |arg|
+						arg_exprs.push arg.expr.compile
+					end
+				end
+				lambda {|env|
+					obj = me.call(env)
+					return obj if obj.is_a?(DoNotWant)
+					func = obj.get([name])
+					return func if func.is_a?(DoNotWant)
+					arg_vals = arg_exprs.map do |arg|
+						val = arg.call(env)
+						break val if val.is_a?(DoNotWant)
+						val
+					end
+					return arg_vals if arg_vals.is_a?(DoNotWant)
+					func.call(obj, arg_vals)
+				}
+			end
+		}
+	end
+
+	rule var
+		'MAH' w var {
+			def compile
+				rest = var.compile
+				lambda {|env|
+					pieces = rest.call(env)
+					return pieces if pieces.is_a?(DoNotWant)
+					pieces.unshift('ME')
+				}
+			end
+		}
+	/
+		'SRS' w expr {
+			def compile
+				# FIXME "SRS" with "'Z"? Or just say no?
+				val = expr.compile
+				lambda {|env|
+					actual = val.call(env)
+					return actual if actual.is_a?(DoNotWant)
+					[actual.to_str]
+				}
+			end
+		}
+	/
+		# FIXME allow <expr>'Z <slot>?
+		ident w? "'Z" w var {
+			def compile
+				base = ident.text_value
+				rest = var.compile
+				lambda {|env|
+					pieces = rest.call(env)
+					return pieces if pieces.is_a?(DoNotWant)
+					pieces.unshift(base)
+				}
+			end
+		}
+	/
+		ident {
+			def compile
+				name = text_value
+				lambda {|env| [name] }
+			end
+		}
+	end
+
+	rule literal
+		numbar_literal
+	/
+		numbr_literal
+	/
+		yarn_literal
+	end
+
+	rule numbar_literal
+		'-'?
+		(
+			'.' [0-9]+
+		/
+			[0-9]+ '.' [0-9]*
+		)
+		{
+			def value
+				Numbar.new(text_value.to_f)
+			end
+
+			def compile
+				val = value
+				lambda {|env| val}
+			end
+		}
+	end
+
+	rule numbr_literal
+		'-'? [0-9]+ {
+			def value
+				Numbr.new(text_value.to_i)
+			end
+
+			def compile
+				val = value
+				lambda {|env| val}
+			end
+		}
+	end
+
+	rule yarn_literal
+		'"'
+		contents:(
+			':"' {
+				def char_value
+					'"'
+				end
+			}
+		/
+			':)' {
+				def char_value
+					"\n"
+				end
+			}
+		/
+			':>' {
+				def char_value
+					"\t"
+				end
+			}
+		/
+			':o' {
+				def char_value
+					"\g"
+				end
+			}
+		/
+			'::' {
+				def char_value
+					':'
+				end
+			}
+		/
+			':(' digits:[0-9a-fA-F]+ ')' {
+				def char_value
+					digits.text_value.hex.chr
+				end
+			}
+		/
+			':{' var '}' {
+				def char_value
+					text_value
+				end
+				def compile
+					var_ref = var.compile
+					lambda {|env|
+						actual_var = var_ref.call(env)
+						return actual_var if actual_var.is_a?(DoNotWant)
+						val = env.get(actual_var)
+						return val if val.is_a?(DoNotWant)
+						Yarn.cast(val)
+					}
+				end
+			}
+		/
+			':[' [A-Z ]+ ']' {
+				def char_value
+					# FIXME NAMED CHARS HOW THE HECK
+					text_value
+				end
+			}
+		/
+			[^"] {
+				def char_value
+					text_value
+				end
+			}
+		)*
+		'"'
+		{
+			def value
+				Yarn.new(contents.elements.map{|e| e.char_value}.join)
+			end
+
+			def compile
+				chars = contents.elements
+				pieces = []
+				until chars.empty?
+					fixed = chars.take_while {|c| !c.respond_to? :compile }
+					pieces << fixed.map(&:char_value).join
+					chars.shift(fixed.count)
+					mutable = chars.take_while {|c| c.respond_to? :compile }
+					pieces += mutable.map(&:compile)
+					chars.shift(mutable.count)
+				end
+				lambda {|env|
+					chars = pieces.map do |char|
+						if char.respond_to?(:call)
+							char = char.call(env)
+							break char if char.is_a?(DoNotWant)
+						end
+						char
+					end
+					return chars if chars.is_a?(DoNotWant)
+					Yarn.new(chars.join)
+				}
+			end
+		}
+	end
+
+	rule ident
+		([a-zA-Z] [a-zA-Z0-9_]*)
+	end
+
+	rule w
+		(
+			[ \t]
+		/
+			("..." / "…") "\n"
+		)+
+	end
+end
