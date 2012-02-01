@@ -35,7 +35,19 @@ O HAI IM runtime_error_test IM LIEK test
 		KTHX
 		ME IZ expectpointin 3
 		
-		BTW FIXME sub-get errors
+		PLZ
+			MAH nonexistent_var HAS A box
+		O NOES WIN
+			ME IZ checkpointin
+		KTHX
+		ME IZ expectpointin 4
+
+		PLZ
+			I'Z test'Z nonexistent_var
+		O NOES WIN
+			ME IZ checkpointin
+		KTHX
+		ME IZ expectpointin 5
 	IF U SAY SO
 
 	I IZ runnin
