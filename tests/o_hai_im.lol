@@ -9,4 +9,10 @@ KTHX
 
 pokeman IZ pikachuin "-chu"
 
+O HAI IM pokeman'Z master
+	I HAS A name ITZ "gary oak"
+KTHX
+
+VISIBLE pokeman'Z master'Z name
+
 KTHXBYE

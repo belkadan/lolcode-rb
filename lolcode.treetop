@@ -1,5 +1,4 @@
 # TODO: for-in loops
-# TODO: O HAI IM a'Z b
 
 # TODO: lines, sheeps
 
@@ -167,18 +166,23 @@ grammar Lolcode
 	end
 
 	rule o_hai_im
-		'O' w 'HAI' w 'IM' w ident
+		'O' w 'HAI' w 'IM' w var
 		liek_clause:(w 'IM' w 'LIEK' w parent:expr)?
 		eos
 		o_hai_im_body
 		{
 			def compile
-				name = ident.text_value
+				name = var.compile
 				body = o_hai_im_body.compile
 				parent_var = liek_clause.parent.compile unless liek_clause.empty?
 				lambda {|env|
+					base = name.call(env)
+					return base if base.is_a?(DoNotWant)
+					slot = base.pop
+
 					parent = if parent_var then parent_var.call(env) else env.world.bukkit end
 					return parent if parent.is_a?(DoNotWant)
+
 					new_bukkit = Bukkit.new(parent)
 					if body
 						bukkit_env = Environment.new(env.world, env)
@@ -186,7 +190,7 @@ grammar Lolcode
 						bukkit_env.init('ME', new_bukkit)
 						problem = body.call(bukkit_env)
 					end
-					problem || env.create(['I'], name, new_bukkit)
+					problem || env.create(base, slot, new_bukkit)
 				}
 			end
 		}

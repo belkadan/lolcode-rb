@@ -78,6 +78,9 @@ module Lolcode
     end
 
     def create(var, name, val)
+      # In a O HAI IM block, the current environment and 'I' are different!
+      # The only purpose of the current environment is to pass through to the enclosing scope.
+      var = ['I'] if var.empty?
       base = get(var)
       return base if base.is_a?(DoNotWant)
       base.init(name, val)
