@@ -122,7 +122,7 @@ grammar Lolcode
 				lambda {|env|
 					name_val = name.call(env)
 					return name_val if name_val.is_a?(DoNotWant)
-					Lolcode.load(name_val, env)
+					env.world.load(name_val, env)
 				}
 			end
 		}
@@ -148,7 +148,7 @@ grammar Lolcode
 				bukkit = var.compile
 				slot = ident.text_value
 				if initializer.empty?
-					initial = lambda {|env| Lolcode::noob}
+					initial = lambda {|env| env.world.noob}
 				elsif initializer.liek?
 					parent = initializer.parent_ref.compile
 					initial = lambda {|env|
@@ -182,12 +182,11 @@ grammar Lolcode
 				body = o_hai_im_body.compile
 				parent_var = liek_clause.parent.compile unless liek_clause.empty?
 				lambda {|env|
-					# FIXME ugly?
-					parent = if parent_var then parent_var.call(env) else env.root end
+					parent = if parent_var then parent_var.call(env) else env.world.bukkit end
 					return parent if parent.is_a?(DoNotWant)
 					new_bukkit = Bukkit.new(parent)
 					if body
-						bukkit_env = Environment.new(new_bukkit)
+						bukkit_env = Environment.new(env.world, new_bukkit)
 						bukkit_env.set(['I'], new_bukkit)
 						bukkit_env.init('ME', new_bukkit)
 						body.call(bukkit_env)
@@ -245,7 +244,7 @@ grammar Lolcode
 				lambda {|env|
 					bukkit_val = bukkit.call(env)
 					return bukkit_val if bukkit_val.is_a?(DoNotWant)
-					proc = Lolcode::Proc.new(env, arg_names, body)
+					proc = Lolcode::Proc.new(env.world, env, arg_names, body)
 					env.create(bukkit_val, slot, proc);
 				}
 			end
@@ -288,7 +287,7 @@ grammar Lolcode
 					error = args.each do |arg|
 						arg_val = arg.call(env)
 						break arg_val if arg_val.is_a?(DoNotWant)
-						arg_yarn = Yarn.cast(arg_val)
+						arg_yarn = Yarn.cast(env.world, arg_val)
 						break arg_yarn if arg_yarn.is_a?(DoNotWant)
 						print arg_yarn
 					end
@@ -348,7 +347,7 @@ grammar Lolcode
 					return type_val if type_val.is_a?(DoNotWant)
 					curr_val = env.get(curr_var)
 					return curr_val if curr_val.is_a?(DoNotWant)
-					val = type_val.cast(curr_val)
+					val = type_val.cast(env.world, curr_val)
 					return val if val.is_a?(DoNotWant)
 					env.set(curr_var, val)
 				}
@@ -392,14 +391,14 @@ grammar Lolcode
 				end
 				alternatives.push [nil, no_wai.body.compile] unless no_wai.empty?
 				lambda {|env|
-					if Lolcode.win? env.get(env.it)
+					if env.get(env.it).win?
 						consequent.call(env) if consequent
 					else
 						chosen = alternatives.find do |alt|
 							if alt[0]
 								test = alt[0].call(env)
 								break test if test.is_a?(DoNotWant)
-								Lolcode.win?(test)
+								test.win?
 							else
 								true
 							end
@@ -600,7 +599,7 @@ grammar Lolcode
 						chosen = handlers.find do |handler|
 							test = handler[0].call(env)
 							break test if test.is_a?(DoNotWant)
-							Lolcode.win?(test)
+							test.win?
 						end
 						# FIXME nested exceptions...which takes priority?
 						# This says the O NOES test's exception wins...
@@ -749,9 +748,9 @@ grammar Lolcode
 						return curr_var if curr_var.is_a?(DoNotWant)
 						curr_val = env.get(curr_var)
 						return curr_val if curr_val.is_a?(DoNotWant)
-						val = Numbr.cast(curr_val)
+						val = Numbr.cast(env.world, curr_val)
 						return val if val.is_a?(DoNotWant)
-						env.set(curr_var, val.send(incr))
+						env.set(curr_var, val.send(incr, env.world))
 					}
 				end
 			}
@@ -778,7 +777,7 @@ grammar Lolcode
 					lambda {|env|
 						test = cond.call(env)
 						return test if test.is_a?(DoNotWant)
-						Lolcode.win?(test) == final
+						test.win? == final
 					}
 				end
 			}
@@ -882,7 +881,7 @@ grammar Lolcode
 		op_name:(
 			'NOT' {
 				def op
-					lambda {|a| Troof.new(!Lolcode.win?(a)) }
+					lambda {|a, world| Troof.new(world, !a.win?) }
 				end
 			}
 		)
@@ -894,7 +893,7 @@ grammar Lolcode
 				lambda {|env|
 					arg_val = arg.call(env)
 					return arg_val if arg_val.is_a?(DoNotWant)
-					op.call(arg_val)
+					op.call(arg_val, env.world)
 				}
 			end
 		}
@@ -947,14 +946,14 @@ grammar Lolcode
 			w 'OF' {
 				def op
 					real_op = name_part.op
-					lambda {|a,b|
-						left = Lolcode.to_numeric(a)
+					lambda {|a, b, world|
+						left = world.to_numeric(a)
 						return left if left.is_a?(DoNotWant)
-						right = Lolcode.to_numeric(b)
+						right = world.to_numeric(b)
 						return right if right.is_a?(DoNotWant)
 						result = real_op.call(left, right)
 						return result if result.is_a?(DoNotWant)
-						Lolcode.make_numeric(result)
+						world.make_numeric(result)
 					}
 				end
 			}
@@ -978,23 +977,23 @@ grammar Lolcode
 			w 'OF' {
 				def op
 					op_name = name_part.op
-					lambda {|a,b|
-						left = Lolcode.win?(a)
-						right = Lolcode.win?(b)
-						Troof.new(left.send(op_name, right))
+					lambda {|a, b, world|
+						left = a.win?
+						right = b.win?
+						Troof.new(world, left.send(op_name, right))
 					}
 				end
 			}
 		/
 			'BOTH' w 'SAEM' {
 				def op
-					lambda {|a,b| Troof.new(a == b) }
+					lambda {|a, b, world| Troof.new(world, a == b) }
 				end
 			}
 		/
 			'DIFFRINT' {
 				def op
-					lambda {|a,b| Troof.new(a != b) }
+					lambda {|a, b, world| Troof.new(world, a != b) }
 				end
 			}
 		)
@@ -1009,7 +1008,7 @@ grammar Lolcode
 					return lval if lval.is_a?(DoNotWant)
 					rval = rexpr.call(env)
 					return rval if rval.is_a?(DoNotWant)
-					op.call(lval, rval)
+					op.call(lval, rval, env.world)
 				}
 			end
 		}
@@ -1033,8 +1032,8 @@ grammar Lolcode
 			w 'OF'
 			{
 				def op
-					lambda {|args|
-						Troof.new(args.map {|x| Lolcode.win?(x) }.send(name_part.msg))
+					lambda {|world, args|
+						Troof.new(world, args.map(&:win?).send(name_part.msg))
 					}
 				end
 			}
@@ -1042,14 +1041,14 @@ grammar Lolcode
 			'SMOOSH'
 			{
 				def op
-					lambda {|args|
+					lambda {|world, args|
 						yarns = args.map do |arg|
-							casted = Yarn.cast(arg)
+							casted = Yarn.cast(world, arg)
 							break casted if casted.is_a?(DoNotWant)
 							casted
 						end
 						return yarns if yarns.is_a?(DoNotWant)
-						Yarn.new(yarns.join)
+						Yarn.new(world, yarns.join)
 					}
 				end
 			}
@@ -1071,7 +1070,7 @@ grammar Lolcode
 						val
 					end
 					return arg_vals if arg_vals.is_a?(DoNotWant)
-					op.call(arg_vals)
+					op.call(env.world, arg_vals)
 				}
 			end
 		}
@@ -1096,7 +1095,7 @@ grammar Lolcode
 					return type_val if type_val.is_a?(DoNotWant)
 					real_val = val.call(env)
 					return real_val if real_val.is_a?(DoNotWant)
-					type_val.cast(real_val)
+					type_val.cast(env.world, real_val)
 				}
 			end
 		}
@@ -1198,12 +1197,12 @@ grammar Lolcode
 		)
 		{
 			def value
-				Numbar.new(text_value.to_f)
+				text_value.to_f
 			end
 
 			def compile
 				val = value
-				lambda {|env| val}
+				lambda {|env| Numbar.new(env.world, val) }
 			end
 		}
 	end
@@ -1211,12 +1210,12 @@ grammar Lolcode
 	rule numbr_literal
 		'-'? [0-9]+ {
 			def value
-				Numbr.new(text_value.to_i)
+				text_value.to_i
 			end
 
 			def compile
 				val = value
-				lambda {|env| val}
+				lambda {|env| Numbr.new(env.world, val) }
 			end
 		}
 	end
@@ -1271,7 +1270,7 @@ grammar Lolcode
 						return actual_var if actual_var.is_a?(DoNotWant)
 						val = env.get(actual_var)
 						return val if val.is_a?(DoNotWant)
-						Yarn.cast(val)
+						Yarn.cast(env.world, val)
 					}
 				end
 			}
@@ -1292,7 +1291,7 @@ grammar Lolcode
 		'"'
 		{
 			def value
-				Yarn.new(contents.elements.map{|e| e.char_value}.join)
+				contents.elements.map(&:char_value).join
 			end
 
 			def compile
@@ -1315,7 +1314,7 @@ grammar Lolcode
 						char
 					end
 					return chars if chars.is_a?(DoNotWant)
-					Yarn.new(chars.join)
+					Yarn.new(env.world, chars.join)
 				}
 			end
 		}

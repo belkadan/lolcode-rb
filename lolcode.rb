@@ -2,7 +2,6 @@ require 'treetop'
 
 module Lolcode
   Treetop.load(File.join(File.dirname(__FILE__), 'lolcode.treetop'))
-  @parser = LolcodeParser.new
 
   class GTFO
     attr_reader :name
@@ -42,14 +41,10 @@ module Lolcode
   end
 
   class Bukkit
-    @@bukkit = nil
-
-    def initialize(parent = @@bukkit)
+    def initialize(parent)
       @values = {}
       @parent = parent
     end
-
-    @@bukkit = Bukkit.new(nil)
 
     def exists?(var)
       @values.has_key?(var) or (@parent and @parent.exists?(var))
@@ -101,27 +96,22 @@ module Lolcode
       (self == other) or (@parent and @parent.liek?(other))
     end
 
-    def self.lol_type
-      @@bukkit
+    def win?
+      true
     end
 
-    def cast(val)
-      DoNotWant.new('Cannot MAEK ' + Yarn.cast(val) + ' into that.')
-    end
-
-    def @@bukkit.cast(val)
-      val
+    def cast(world, val)
+      DoNotWant.new('Cannot MAEK ' + Yarn.cast(world, val) + ' into that.')
     end
   end
 
   class Proc < Bukkit
-    unless self.class_variable_defined?(:@@sheep)
-      # FIXME common parent for Primitives and Sheepdas?
-      @@sheep = Bukkit.new
+    def self.register(world)
+      world.sheep = Bukkit.new(world.root)
     end
 
-    def initialize(env, args, body)
-      super(@@sheep)
+    def initialize(world, env, args, body)
+      super(world.sheep)
       @env = env
       @args = args
       @body = body
@@ -129,7 +119,7 @@ module Lolcode
 
     def call(me, arg_values)
       # FIXME this is not proper Ruby
-      new_env = Environment.new @env
+      new_env = Environment.new(@env.world, @env)
       new_env.init('ME', me)
       @args.zip(arg_values).each do |var, val|
         new_env.init(var, val)
@@ -140,50 +130,35 @@ module Lolcode
       return DoNotWant.new('No such loop: ' + result.name) if result.name
       result.value
     end
-
-    def self.lol_type
-      @@sheep
-    end
   end
 
   class Primitive < Bukkit
-    unless self.class_variable_defined?(:@@primitive)
-      # FIXME common parent for Primitives and Sheepdas?
-      @@primitive = Bukkit.new
+    def self.register(world)
+      world.magic = Bukkit.new(world.root)
     end
 
-    def initialize(&body)
-      super(@@primitive)
+    def initialize(world, &body)
+      super(world.magic)
       @body = body
     end
 
     def call(me, arg_values)
       @body.call(me, arg_values)
     end
+  end
 
-    def self.lol_type
-      @@primitive
+  def self.register_noob(world)
+    noob = Bukkit.new(world.bukkit)
+    def noob.cast(world, val)
+      self
     end
-  end
-
-  class Bukkit
-    @@bukkit.init('liek', Primitive.new do |me, args|
-      Troof.new(me.liek? args.first)
-    end)
-  end
-
-  @noob = Bukkit.new
-  def @noob.cast(val)
-    self
-  end
-  def @noob.to_s
-    'NOOB'
-  end
-  def @noob.win?
-    false
-  end
-  def self.noob
-    @noob
+    def noob.to_s
+      'NOOB'
+    end
+    def noob.win?
+      false
+    end
+    world.noob = noob
   end
 
   class ImmutableBukkit < Bukkit
@@ -191,68 +166,68 @@ module Lolcode
     def set(name, val)
       DoNotWant.new('It is not safe to change the properties of non-finite primitives.')
     end
+
+    def make_mutable!
+      instance_eval do
+        def set(name, val)
+          set!(name, val)
+        end
+      end
+    end
   end
 
   class Troof < Bukkit
-    # FIXME TROOF should inherit from BUKKIT
-    # FIXME all of these should be per-environment, since you can mess with the slots!
-    unless self.class_variable_defined?(:@@troof)
-      @@troof = Bukkit.new
-      @@win = Troof.new(@@troof)
-      @@fail = Troof.new(@@troof)
+    def self.new(world, truth)
+      return super(truth) if world.troof.nil?
+      if truth then world.win else world.fail end
     end
 
-    def self.new(truth)
-      return super if @@fail.nil?
-      if truth then @@win else @@fail end
-    end
+    def self.register(world)
+      troof = Bukkit.new(world.bukkit)
+      def troof.cast(world, val)
+        if val.win? then world.win else world.fail end
+      end
 
-    def self.cast(val)
-      if Lolcode.win?(val) then @@win else @@fail end
-    end
-    def @@troof.cast(val)
-      Troof.cast(val)
-    end
+      win = Troof.new(world, troof)
+      def win.to_s
+        'WIN'
+      end
+      def win.win?
+        true
+      end
 
-    def @@win.to_s
-      'WIN'
-    end
-    def @@win.win?
-      true
-    end
-    def @@fail.to_s
-      'FAIL'
-    end
-    def @@fail.win?
-      false
-    end
+      fail = Troof.new(world, troof)
+      def fail.to_s
+        'FAIL'
+      end
+      def fail.win?
+        false
+      end
 
-    def self.lol_type
-      @@troof
+      world.troof = troof
+      world.win = win
+      world.fail = fail
     end
   end
 
   class Yarn < ImmutableBukkit
-    # FIXME the empty string should be per-environment, since you can mess with the YARN prototype!
-    @@empty = nil
-
-    def self.new(val, parent = @@empty)
-      return @@empty if @@empty and (val == '' or val == @@empty)
-      super
+    def self.register(world)
+      empty = self.new(world, '')
+      def empty.cast(world, val)
+        Yarn.cast(world, val)
+      end
+      empty.make_mutable!
+      world.yarn = empty
     end
 
-    def initialize(val, parent = @@empty)
-      super(parent)
+    def initialize(world, val)
+      super(world.yarn || world.bukkit)
       @value = val.to_s
     end
 
-    @@empty = Yarn.new('', Bukkit.lol_type)
-
-    def self.cast(val)
-      Yarn.new(val)
-    end
-    def @@empty.cast(val)
-      Yarn.new(val)
+    def self.cast(world, val)
+      return world.yarn if val == ''
+      Yarn.new(world, val)
     end
 
     def to_s
@@ -264,11 +239,11 @@ module Lolcode
     end
 
     def ==(other)
-      other.is_a?(Yarn) and other.to_s == to_s
+      (other.is_a?(String) or other.is_a?(Yarn)) and other.to_s == to_s
     end
 
     def empty?
-      self == @@empty
+      @value.empty?
     end
 
     def win?
@@ -277,7 +252,8 @@ module Lolcode
 
     def get(name)
       if name.first == 'LONGNESS'
-        longness = Lolcode.make_numeric(@value.length)
+        # FIXME: DON'T HACK THE WORLD
+        longness = self.root.world.make_numeric(@value.length)
         if name.count == 1
           longness
         else
@@ -287,51 +263,44 @@ module Lolcode
         super
       end
     end
-
-    def @@empty.set(name, val)
-      set!(name, val)
-    end
-
-    def self.lol_type
-      @@empty
-    end
   end
 
   class Numbr < ImmutableBukkit
-    @@zero = nil
-    @@one = nil
+    def self.register(world)
+      zero = self.new(world, 0)
+      def zero.cast(world, val)
+        Numbr.cast(world, val)
+      end
+      zero.make_mutable!
+      world.numbr = zero
+    end
 
-    def initialize(val)
-      super(@@zero || Bukkit.lol_type)
+    def initialize(world, val)
+      super(world.numbr || world.bukkit)
       @value = val
     end
 
-    def self.new(val)
-      return @@zero if @@zero and val.zero?
-      return @@one if @@one and val == 1
+    def self.new(world, val)
+      return world.numbr if world.numbr and val.zero?
+      # FIXME other cached constants?
+      # return @@one if @@one and val == 1
       super
     end
 
-    @@zero = self.new(0)
-    @@one = self.new(1)
-
-    def self.cast(val)
-      return @@one if val.is_a? Troof and val.win?
-      return @@zero if val.is_a? Troof or val == @noob
+    def self.cast(world, val)
       return val if val.is_a? Numbr
-      return self.new(val.to_i) if val.is_a? Numbar
-      return self.new(val.to_str.to_i) if val.is_a? Yarn
+      return self.new(world, 1) if val.is_a? Troof and val.win?
+      return world.numbr if val.is_a? Troof or val == world.noob
+      return self.new(world, val.to_i) if val.is_a? Numbar
+      return self.new(world, val.to_str.to_i) if val.is_a? Yarn
 
       # FIXME: random bukkits?
-      return DoNotWant.new('Cannot make a NUMBR from ' + Yarn.cast(val))
-    end
-    def @@zero.cast(val)
-      Numbr.cast(val)
+      return DoNotWant.new('Cannot make a NUMBR from ' + Yarn.cast(world, val))
     end
 
     def ==(other)
-      return other.to_f == to_f if other.is_a?(Numbar)
-      return other.to_i == to_i if other.is_a?(Numbr)
+      return other.to_i == to_i if other.is_a?(Numbr) or other.is_a?(Integer)
+      return other.to_f == to_f if other.is_a?(Numbar) or other.is_a?(Numeric)
       return false
     end
 
@@ -347,61 +316,54 @@ module Lolcode
       @value.to_s
     end
 
-    def next
-      Numbr.new(@value.next)
+    def next(world)
+      Numbr.new(world, @value.next)
     end
 
-    def pred
-      Numbr.new(@value.pred)
+    def pred(world)
+      Numbr.new(world, @value.pred)
     end
 
     def win?
-      self != @@zero
-    end
-
-    def self.lol_type
-      @@zero
-    end
-
-    def @@zero.set(name, val)
-      set!(name, val)
+      @value.nonzero?
     end
   end
 
   class Numbar < ImmutableBukkit
-    @@zero = nil
-    @@one = nil
+    def self.register(world)
+      zero = self.new(world, 0.0)
+      def zero.cast(world, val)
+        Numbar.cast(world, val)
+      end
+      zero.make_mutable!
+      world.numbar = zero
+    end
 
-    def initialize(val)
-      super(@@zero || Bukkit.lol_type)
+    def initialize(world, val)
+      super(world.numbar || world.bukkit)
       @value = val
     end
 
-    def self.new(val)
-      return @@zero if @@zero and val.zero?
-      return @@one if @@one and val == 1.0
+    def self.new(world, val)
+      return world.numbar if world.numbar and val.zero?
+      # FIXME other cached constants?
+      # return @@one if @@one and val == 1.0
       super
     end
 
-    @@zero = self.new(0.0)
-    @@one = self.new(1.0)
-
-    def self.cast(val)
-      return @@one if val.is_a? Troof and val.win?
-      return @@zero if val.is_a? Troof or val == Lolcode::noob
+    def self.cast(world, val)
       return val if val.is_a? Numbar
-      return self.new(val.to_f) if val.is_a? Numbr
-      return self.new(val.to_str.to_f) if val.is_a? Yarn
+      return self.new(world, 1.0) if val.is_a? Troof and val.win?
+      return world.numbar if val.is_a? Troof or val == world.noob
+      return self.new(world, val.to_f) if val.is_a? Numbr
+      return self.new(world, val.to_str.to_f) if val.is_a? Yarn
 
       # FIXME: random bukkits?
-      return DoNotWant.new('Cannot make a NUMBAR from ' + Yarn.cast(val))
-    end
-    def @@zero.cast(val)
-      Numbar.cast(val)
+      return DoNotWant.new('Cannot make a NUMBAR from ' + Yarn.cast(world, val))
     end
 
     def ==(other)
-      return other.to_f == to_f if other.is_a?(Numbar) or other.is_a?(Numbr)
+      return other.to_f == to_f if other.is_a?(Numbar) or other.is_a?(Numbr) or other.is_a?(Numeric)
       return false
     end
 
@@ -418,53 +380,76 @@ module Lolcode
     end
 
     def win?
-      self != @@zero
+      @value.nonzero?
     end
+  end
 
-    def @@zero.set(name, val)
-      set!(name, val)
-    end
-
-    def self.lol_type
-      @@zero
+  class Bukkit
+    def self.register(world)
+      # The root bukkit is actually an environment, so it can track the world
+      # and function as module scope.
+      root = Environment.new(world, nil)
+      def root.cast(world, val)
+        val
+      end
+      world.bukkit = root
     end
   end
 
   class World
     def initialize
+      @parser = LolcodeParser.new
+
       Bukkit.register(self)
-      Lolcode::noob.register(self)
+      Lolcode::register_noob(self)
       Troof.register(self)
       Primitive.register(self)
       Proc.register(self)
       Numbr.register(self)
       Numbar.register(self)
       Yarn.register(self)
+
+      # This needs to happen AFTER all primitives have been initialized!
+      liek = Primitive.new(self) do |me, args|
+        Troof.new(self, me.liek?(args.first))
+      end
+      root.init('liek', liek)
     end
+
+    # Special-case BUKKIT cause it's the root
+    def bukkit=(val)
+      @bukkit = val
+      @bukkit.init('BUKKIT', val)
+    end
+    attr_reader :bukkit
+    alias_method :root, :bukkit
+
+    def self.builtin(*names)
+      names.each do |name|
+        class_eval %{
+          def #{name}=(val)
+            raise 'Must register BUKKIT first' if bukkit.nil?
+            @#{name} = val
+            bukkit.init('#{name.to_s.upcase}', val)
+          end
+
+          def #{name}
+            @#{name}
+          end
+        }
+      end
+    end
+
+    builtin :noob, :troof, :win, :fail, :numbr, :numbar, :yarn, :magic, :sheep
   end
 
   class Environment < Bukkit
-    def self.root
-      root = Environment.new
-      root.init('WIN', Troof.new(true))
-      root.init('FAIL', Troof.new(false))
-      root.init('NOOB', Lolcode::noob)
-      root.init('TROOF', Troof.lol_type)
-      root.init('MAGIC', Primitive.lol_type)
-      root.init('SHEEP', Proc.lol_type)
-      root.init('NUMBR', Numbr.lol_type)
-      root.init('NUMBAR', Numbar.lol_type)
-      root.init('YARN', Yarn.lol_type)
-      root.init('BUKKIT', Bukkit.lol_type)
-      # HACK
-      root.init('liek', Bukkit.lol_type.get(['liek']))
-      root
-    end
+    attr_accessor :world
 
-    def initialize(parent = nil)
-      # FIXME: this is WRONG, environments are BUKKITs like anything else...but the top-level environment is the BUKKIT bukkit. How to do this properly...?
-      super
-      init('IT', Lolcode::noob)
+    def initialize(world, parent)
+      super(parent)
+      @world = world
+      init('IT', world.noob)
       init('I', self)
     end
 
@@ -473,117 +458,115 @@ module Lolcode
     end
   end
 
-  def self.win?(val)
-    if val.respond_to?(:win?)
-      val.win?
-    else
-      # FIXME: do random bukkits get to choose their conversion?
-      true
-    end
-  end
+  class World
+    def to_numeric(val)
+      return val.to_i if val.is_a? Numbr
+      return val.to_f if val.is_a? Numbar
+      return 1 if val.is_a? Troof and val.win?
+      return 0 if val.is_a? Troof
 
-  def self.to_numeric(val)
-    return val.to_i if val.is_a? Numbr
-    return val.to_f if val.is_a? Numbar
-    return 1 if val.is_a? Troof and val.win?
-    return 0 if val.is_a? Troof
+      # FIXME: random bukkits?
+      # FIXME: having the world parameter is ugly.
+      return DoNotWant.new('Cannot make a NUMBR or NUMBAR from ' + Yarn.cast(self, val)) unless val.is_a? Yarn
 
-    # FIXME: random bukkits?
-    return DoNotWant.new('Cannot make a NUMBR or NUMBAR from ' + Yarn.cast(val)) unless val.is_a? Yarn
-
-    val = val.to_str
-    return val.to_f if val.include? '.'
-    return val.to_i
-  end
-
-  def self.make_numeric(val)
-    # This translates from Ruby floats and ints to Lolcode NUMBARs and NUMBRs
-    return Numbr.new(val) if val.is_a? Integer
-    return Numbar.new(val)
-  end
-
-  def self.load(filename, env = Environment.root)
-    filename = filename.to_str
-    filename += '.lol' unless filename.end_with? '.lol'
-    # FIXME better error handling
-    # Also see the exceptions raised by run()
-    begin
-      run(File.read(filename), env)
-    rescue SystemCallError
-      return DoNotWant.new('CANNOT HAS ' + filename.inspect)
-    rescue IOError
-      return DoNotWant.new('CANNOT HAS ' + filename.inspect)
-    end
-    nil
-  end
-
-  def self.catch_top_level_result(result, should_recover)
-    return if result.nil?
-    # FIXME how to deal with this more properly?
-    if result.is_a? DoNotWant
-      raise 'DO NOT WANT: ' + Yarn.cast(result.value) unless should_recover
-      # FIXME should use stderr
-      puts 'DO NOT WANT: ' + Yarn.cast(result.value)
-    elsif result.name
-      catch_top_level_result(DoNotWant.new('No such loop: ' + result.name), should_recover)
-    end
-  end
-
-  def self.run_interpreter(env = Environment.root, options = {})
-    print '? '
-    input = gets
-    while input.end_with? "...\n" or input.end_with? "…\n"
-      print '> '
-      input << gets
+      val = val.to_str
+      return val.to_f if val.include? '.'
+      return val.to_i
     end
 
-    index = 0
-    should_continue = true
-    while should_continue and index < input.size
-      ast = @parser.parse(input, :root => :program_fragment, :consume_all_input => false, :index => index)
-      if ast
-        puts ast.inspect if options[:debug]
-        action = ast.compile
-        index = @parser.index
-        if action
-          catch_top_level_result(action.call(env), true)
-        else
-          puts 'BAI FOR NAU'
-          should_continue = false
-        end
-      else
-        puts @parser.failure_reason
-        should_continue = false
+    def make_numeric(val)
+      # This translates from Ruby floats and ints to Lolcode NUMBARs and NUMBRs
+      return Numbr.new(self, val) if val.is_a? Integer
+      return Numbar.new(self, val)
+    end
+
+    def catch_top_level_result(result, should_recover)
+      return if result.nil?
+      # FIXME how to deal with this more properly?
+      if result.is_a? DoNotWant
+        raise 'DO NOT WANT: ' + Yarn.cast(self, result.value) unless should_recover
+        # FIXME should use stderr
+        puts 'DO NOT WANT: ' + Yarn.cast(self, result.value)
+      elsif result.name
+        catch_top_level_result(DoNotWant.new('No such loop: ' + result.name), should_recover)
       end
     end
 
-    run_interpreter(env) if should_continue
-  end
+    def load(filename, env = self.root)
+      filename = filename.to_str
+      filename += '.lol' unless filename.end_with? '.lol'
+      # FIXME better error handling
+      # Also see the exceptions raised by run()
+      begin
+        run(File.read(filename), env)
+      rescue SystemCallError
+        return DoNotWant.new('CANNOT HAS ' + filename.inspect)
+      rescue IOError
+        return DoNotWant.new('CANNOT HAS ' + filename.inspect)
+      end
+      nil
+    end
 
-  def self.run(input, env = Environment.root())
-    valid = @parser.parse(input, :consume_all_input => false, :root => :hai)
-    raise 'Invalid header! (expected "HAI 1.3")' unless valid
+    def run_interpreter(options = {})
+      print '? '
+      input = gets
+      while input.end_with? "...\n" or input.end_with? "…\n"
+        print '> '
+        input << gets
+      end
 
-    index = @parser.index
-    while true
-      ast = @parser.parse(input, :root => :program_fragment, :consume_all_input => false, :index => index)
-      if ast
-        action = ast.compile
-        index = @parser.index
-        if action
-          begin
-            catch_top_level_result(action.call(env), false)
-          rescue StandardError => problem
-            puts ast.text_value
-            raise
+      index = 0
+      should_continue = true
+      while should_continue and index < input.size
+        ast = @parser.parse(input, :root => :program_fragment, :consume_all_input => false, :index => index)
+        if ast
+          puts ast.inspect if options[:debug]
+          action = ast.compile
+          index = @parser.index
+          if action
+            catch_top_level_result(action.call(options[:environment] || self.root), true)
+          else
+            puts 'BAI FOR NAU'
+            should_continue = false
           end
         else
-          break
+          puts @parser.failure_reason
+          should_continue = false
         end
-      else
-        raise @parser.failure_reason
+      end
+
+      run_interpreter(options) if should_continue
+    end
+
+    def run(input, env = self.root)
+      valid = @parser.parse(input, :consume_all_input => false, :root => :hai)
+      raise 'Invalid header! (expected "HAI 1.3")' unless valid
+
+      index = @parser.index
+      while true
+        ast = @parser.parse(input, :root => :program_fragment, :consume_all_input => false, :index => index)
+        if ast
+          action = ast.compile
+          index = @parser.index
+          if action
+            begin
+              catch_top_level_result(action.call(env), false)
+            rescue StandardError => problem
+              puts ast.text_value
+              raise
+            end
+          else
+            break
+          end
+        else
+          raise @parser.failure_reason
+        end
       end
     end
+  end
+
+  def self.load(filename)
+    World.new.load(filename)
   end
 
   def self.run_tests(interactive = true, test_dir = '.')
@@ -592,7 +575,7 @@ module Lolcode
       print file
       if interactive then gets else puts end
       begin
-        self.load(file)
+        World.new.load(file)
       rescue StandardError => problem
         puts 'ERROR: ' + problem
         success = false
