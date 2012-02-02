@@ -23,4 +23,7 @@ O HAI IM module_scope_test IM LIEK test
 	I IZ runnin
 KTHX
 
+VISIBLE ME IZ frist
+VISIBLE NOT friend IZ frist
+
 KTHXBAI

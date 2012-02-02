@@ -501,7 +501,12 @@ module Lolcode
 
   class Module < Environment
     def self.register(world)
-      world.module = Bukkit.new(world.bukkit)
+      raise 'MODULE requires MAGIC' if world.magic.nil?
+      module_bukkit = Bukkit.new(world.bukkit)
+      module_bukkit.init('frist', Primitive.new(world) do |me, args|
+        Troof.new(world, me == world.root)
+      end)
+      world.module = module_bukkit
     end
 
     def initialize(world)
@@ -592,6 +597,7 @@ module Lolcode
       # Also see the exceptions raised by run()
       begin
         loaded_module = Module.new(self)
+        @root = loaded_module if @root.nil?
         run(File.read(filename), loaded_module)
       rescue SystemCallError
         return DoNotWant.new('CANNOT HAS ' + filename.inspect)
