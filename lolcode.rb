@@ -145,20 +145,29 @@ module Lolcode
       world.sheep = Bukkit.new(world.bukkit)
     end
 
-    def initialize(world, env, args, body)
+    def initialize(world, env, args, vararg, body)
       super(world.sheep)
       @env = env
       @args = args
+      @vararg = vararg
       @body = body
     end
 
     def call(me, arg_values)
-      # FIXME this is not proper Ruby
       new_env = Environment.new(@env.world, @env)
       new_env.init(Environment::Me, me)
       @args.zip(arg_values).each do |var, val|
+        # FIXME behavior for too /few/ args?
         new_env.init(var, val)
       end
+      
+      if @vararg
+        rest_args = arg_values.drop(@args.length)
+        new_env.init(@vararg, Line.new(@env.world, rest_args))
+      else
+        return DoNotWant.new('Too many arguments!') if @args.length < arg_values.length
+      end
+
       result = @body.call(new_env)
       return result if result.is_a?(DoNotWant)
       # FIXME some kind of RuntimeError type, not a string?
@@ -469,6 +478,45 @@ module Lolcode
     end
   end
 
+  class Line < Bukkit
+    def self.register(world)
+      empty = self.new(world, [])
+      def empty.cast(world, val)
+        return val if val.is_a?(Line)
+        return self if val.is_a?(Noob)
+        Line.new(world, [val])
+      end
+      world.line = empty
+    end
+
+    def initialize(world, contents)
+      super(world.line || world.bukkit)
+      @contents = contents
+    end
+
+    def self.new(world, contents)
+      return world.line if world.line and contents.empty?
+      super
+    end
+
+    def ==(other)
+      return false unless other.is_a?(Line)
+      @contents.zip(other.contents).all? {|a,b| a == b}
+    end
+
+    def to_s
+      @contents.map(&:to_s).join(' ')
+    end
+
+    def win?
+      not @contents.empty?
+    end
+
+    def contents
+      @contents
+    end
+  end
+
   class Bukkit
     def self.register(world)
       # The root bukkit is actually an environment, so it can track the world
@@ -521,6 +569,7 @@ module Lolcode
     def initialize
       @parser = LolcodeParser.new
 
+      # FIXME: why isn't this controlled by the builtin() macro?
       Bukkit.register(self)
       Lolcode::register_noob(self)
       Troof.register(self)
@@ -530,6 +579,7 @@ module Lolcode
       Numbar.register(self)
       Yarn.register(self)
       Module.register(self)
+      Line.register(self)
 
       # This needs to happen AFTER all primitives have been initialized!
       liek = Primitive.new(self) do |me, args|
@@ -561,7 +611,7 @@ module Lolcode
       end
     end
 
-    builtin :noob, :troof, :win, :fail, :numbr, :numbar, :yarn, :magic, :sheep, :module
+    builtin :noob, :troof, :win, :fail, :numbr, :numbar, :yarn, :magic, :sheep, :module, :line
 
     def root
       return @root if @root

@@ -1,6 +1,6 @@
 # TODO: for-in loops
 
-# TODO: lines, sheeps
+# TODO: sheeps
 
 grammar Lolcode
 	rule program
@@ -224,8 +224,22 @@ grammar Lolcode
 
 	rule how_iz
 		'HOW' w 'IZ' w var w ident
-		args:(w ('YR' w)? ident
-			rest:(w 'AN' w ('YR' w)? ident)*
+		args:(
+			w 'ALL' w ('YR' w)? all:ident
+			{
+				def fully_variadic?
+					true
+				end
+			}
+		/
+			w ('YR' w)? ident
+			named:(w 'AN' w ('YR' w)? (!'ALL') ident)*
+			rest:(w 'AN' w 'ALL' w ('YR' w)? ident)?
+			{
+				def fully_variadic?
+					false
+				end
+			}
 		)?
 		eos
 		function_body
@@ -235,16 +249,21 @@ grammar Lolcode
 				slot = ident.text_value
 				arg_names = []
 				unless args.empty?
-					arg_names.push args.ident.text_value
-					args.rest.elements.each do |arg|
-						arg_names.push arg.ident.text_value
+					if args.fully_variadic?
+						rest_name = args.all.text_value
+					else
+						arg_names.push args.ident.text_value
+						args.named.elements.each do |arg|
+							arg_names.push arg.ident.text_value
+						end
+						rest_name = args.rest.ident.text_value unless args.rest.empty?
 					end
 				end
 				body = function_body.compile
 				lambda {|env|
 					bukkit_val = bukkit.call(env)
 					return bukkit_val if bukkit_val.is_a?(DoNotWant)
-					proc = Lolcode::Proc.new(env.world, env, arg_names, body)
+					proc = Lolcode::Proc.new(env.world, env, arg_names, rest_name, body)
 					env.create(bukkit_val, slot, proc);
 				}
 			end
@@ -275,7 +294,7 @@ grammar Lolcode
 
 	rule visible
 		"VISIBLE" w expr
-		rest:(w expr)*
+		rest:(w ('AN' w)? expr)*
 		omit_newline:(w? '!')?
 		{
 			def compile
