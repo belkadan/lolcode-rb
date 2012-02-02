@@ -671,11 +671,22 @@ module Lolcode
     end
 
     def run_interpreter(options = {})
-      print '? '
-      input = gets
+      input = "\n"
+      while input == "\n"
+        print '? '
+        input = gets
+        return if input.nil?
+      end
+
       while input.end_with? "...\n" or input.end_with? "…\n"
         print '> '
-        input << gets
+        next_line = gets
+        if next_line.nil?
+          input << "\n"
+          break
+        end
+        next if next_line == "\n"
+        input << next_line
       end
 
       index = 0
