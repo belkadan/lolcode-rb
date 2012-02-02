@@ -257,7 +257,7 @@ grammar Lolcode
 		{
 			def compile
 				# Falling off the end of a function body >> FOUND IT
-				lambda {|env| Result.new(env.get(env.it)) }
+				lambda {|env| Result.new(env.get(Environment::It)) }
 			end
 		}
 	/
@@ -363,7 +363,7 @@ grammar Lolcode
 				lambda {|env|
 					val = value.call(env)
 					return val if val.is_a?(DoNotWant)
-					env.set(env.it, val)
+					env.set(Environment::It, val)
 				}
 			end
 		}
@@ -391,7 +391,7 @@ grammar Lolcode
 				end
 				alternatives.push [nil, no_wai.body.compile] unless no_wai.empty?
 				lambda {|env|
-					if env.get(env.it).win?
+					if env.get(Environment::It).win?
 						consequent.call(env) if consequent
 					else
 						chosen = alternatives.find do |alt|
@@ -480,7 +480,7 @@ grammar Lolcode
 				end
 				choices.push [nil, omgwtf.body.compile] unless omgwtf.empty?
 				lambda {|env|
-					test_var = env.get(env.it)
+					test_var = env.get(Environment::It)
 					result = nil
 					choices.drop_while do |literal, body|
 						literal and test_var != literal
@@ -583,7 +583,7 @@ grammar Lolcode
 							# someone could override their 'liek' slot
 							parent_val = parent.call(env)
 							return parent_val if parent_val.is_a?(DoNotWant)
-							problem = env.get(env.it)
+							problem = env.get(Environment::It)
 							problem.get(['liek']).call(problem, [parent_val])
 						}
 					else
@@ -595,7 +595,7 @@ grammar Lolcode
 				lambda {|env|
 					result = action.call(env) if action
 					if result and result.is_a? DoNotWant
-						env.set(env.it, result.value)
+						env.set(Environment::It, result.value)
 						chosen = handlers.find do |handler|
 							test = handler[0].call(env)
 							break test if test.is_a?(DoNotWant)
