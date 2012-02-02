@@ -559,6 +559,20 @@ module Lolcode
     def contents
       @contents
     end
+
+    def get(name)
+      if name.first == 'LONGNESS'
+        # FIXME: DON'T HACK THE WORLD
+        longness = self.root.world.make_numeric(@contents.count)
+        if name.count == 1
+          longness
+        else
+          longness.get(name.drop(1))
+        end
+      else
+        super
+      end
+    end
   end
 
   class Bukkit
