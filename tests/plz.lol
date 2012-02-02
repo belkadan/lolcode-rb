@@ -126,6 +126,21 @@ O HAI IM cross_procedural_exceptions_test IM LIEK test
 	I IZ runnin
 KTHX
 
+O HAI IM cross_module_exceptions_test IM LIEK test
+	MAH name R "DO NOT WANT (cross-module)"
+
+	HOW IZ I testin
+		PLZ
+			CAN HAS "error_on_can_has"
+		O NOES WIN
+			ME IZ checkpointin
+		KTHX
+		ME IZ expectpointin 1
+	IF U SAY SO
+
+	I IZ runnin
+KTHX
+
 O HAI IM subexpr_exceptions_test IM LIEK test
 	MAH name R "DO NOT WANT (subexpressions)"
 

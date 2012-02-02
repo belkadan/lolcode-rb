@@ -696,7 +696,11 @@ module Lolcode
       begin
         loaded_module = Module.new(self)
         @root = loaded_module if @root.nil?
-        run(File.read(filename), loaded_module)
+        result = run(File.read(filename), loaded_module)
+        if result
+          return result if result.is_a?(DoNotWant)
+          return DoNotWant.new('No such loop: ' + result.name) if result.name
+        end
       rescue SystemCallError
         return DoNotWant.new('CANNOT HAS ' + filename.inspect)
       rescue IOError
@@ -759,7 +763,14 @@ module Lolcode
           index = @parser.index
           if action
             begin
-              catch_top_level_result(action.call(env), false)
+              result = action.call(env)
+              if result
+                if env == self.root
+                  catch_top_level_result(result, false)
+                else
+                  return result
+                end
+              end
             rescue StandardError => problem
               puts ast.text_value
               raise
