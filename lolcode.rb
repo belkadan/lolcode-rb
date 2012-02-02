@@ -488,13 +488,48 @@ module Lolcode
   end
 
   class Line < Bukkit
+    class Iterator < Bukkit
+      def initialize(world, line)
+        super(world.bukkit)
+        @index = 0
+        @line = line
+        
+        # FIXME these should not be new primitives every time
+        self.init('going', Primitive.new(world) do |me, args|
+          me.next!
+        end)
+        self.init('finished', Primitive.new(world) do |me, args|
+          Troof.new(world, me.finished?)
+        end)
+      end
+      
+      def next!
+        val = @line.contents[@index]
+        @index += 1
+        val
+      end
+
+      def finished?
+        @index >= @line.contents.length
+      end
+
+      def to_s
+        "<LINE'Z ITERATOR>"
+      end
+    end
+
     def self.register(world)
+      raise 'LINE requires MAGIC' if world.magic.nil?
       empty = self.new(world, [])
       def empty.cast(world, val)
         return val if val.is_a?(Line)
         return self if val.is_a?(Noob)
         Line.new(world, [val])
       end
+      empty.init('gettin', Primitive.new(world) do |me, args|
+        Iterator.new(world, me)
+      end)
+
       world.line = empty
     end
 
@@ -584,9 +619,9 @@ module Lolcode
 
       # FIXME: why isn't this controlled by the builtin() macro?
       Bukkit.register(self)
+      Primitive.register(self)
       Lolcode::register_noob(self)
       Troof.register(self)
-      Primitive.register(self)
       Proc.register(self)
       Numbr.register(self)
       Numbar.register(self)
