@@ -105,7 +105,8 @@ module Lolcode
 
     def to_s
       if @parent.nil?
-        super
+        # FIXME: can do better
+        '<BUKKIT>'
       else
         @parent.to_s
       end
@@ -174,6 +175,10 @@ module Lolcode
       return DoNotWant.new('No such loop: ' + result.name) if result.name
       result.value
     end
+
+    def to_s
+      '<SHEEP>'
+    end
   end
 
   class Primitive < Bukkit
@@ -188,6 +193,10 @@ module Lolcode
 
     def call(me, arg_values)
       @body.call(me, arg_values)
+    end
+
+    def to_s
+      '<MAGIC>'
     end
   end
 
@@ -563,7 +572,11 @@ module Lolcode
       # This is a set() instead of init() because environments normally have "I" as themselves.
       set(Environment::I, world.bukkit)
     end
-  end    
+
+    def to_s
+      '<MODULE>'
+    end
+  end
 
   class World
     def initialize
