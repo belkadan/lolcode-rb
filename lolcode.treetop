@@ -147,24 +147,27 @@ grammar Lolcode
 	end
 
 	rule o_hai_im
-		'O' w 'HAI' w 'IM' w var
-		liek_clause:(w 'IM' w liek)?
+		'O' w 'HAI'
+		name_part:(w 'IM' w !liek var)?
+		liek_part:(w 'IM' w liek)?
 		eos
 		o_hai_im_body
 		{
 			def compile
-				name = var.compile
+				name = name_part.var.compile unless name_part.empty?
 				body = o_hai_im_body.compile
-				if liek_clause.empty?
+				if liek_part.empty?
 					initial = lambda {|env| Bukkit.new(env.world.bukkit) }
 				else
-					initial = liek_clause.liek.compile
+					initial = liek_part.liek.compile
 				end
 				lambda {|env|
-					base = name.call(env)
-					return base if base.is_a?(DoNotWant)
-					slot = base.pop
-					base = Environment::I if base.empty?
+					if name
+						base = name.call(env)
+						return base if base.is_a?(DoNotWant)
+						slot = base.pop
+						base = Environment::I if base.empty?
+					end
 
 					new_bukkit = initial.call(env)
 					return new_bukkit if new_bukkit.is_a?(DoNotWant)
@@ -174,8 +177,14 @@ grammar Lolcode
 						bukkit_env.set(Environment::I, new_bukkit)
 						bukkit_env.init(Environment::Me, new_bukkit)
 						problem = body.call(bukkit_env)
+						return problem if problem
 					end
-					problem || env.create(base, slot, new_bukkit)
+
+					if name
+						env.create(base, slot, new_bukkit)
+					else
+						env.set(Environment::It, new_bukkit)
+					end
 				}
 			end
 		}
