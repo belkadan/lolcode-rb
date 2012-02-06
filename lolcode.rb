@@ -143,7 +143,13 @@ module Lolcode
 
   class Primitive < Bukkit
     def self.register(world)
-      world.magic = Bukkit.new(world.bukkit)
+      magic = Bukkit.new(world.bukkit)
+      # This MUST happen before putting any primitive methods on MAGIC! (Duh.)
+      world.magic = magic
+
+      magic.init('callin', Primitive.new(world) do |me, args|
+        me.call(args.first, args.drop(1))
+      end)
     end
 
     def initialize(world, &body)
@@ -163,12 +169,7 @@ module Lolcode
   class Proc < Bukkit
     def self.register(world)
       raise 'SHEEP requires MAGIC' if world.magic.nil?
-      sheep = Bukkit.new(world.magic)
-      sheep.init('callin', Primitive.new(world) do |me, args|
-        me.call(args.first, args.drop(1))
-      end)
-      
-      world.sheep = sheep
+      world.sheep = Bukkit.new(world.magic)
     end
 
     def initialize(world, env, args, vararg, body)
@@ -206,27 +207,29 @@ module Lolcode
     end
   end
 
-  def self.register_noob(world)
-    noob = Bukkit.new(world.bukkit)
-    def noob.cast(world, val)
-      self
+  module Noob
+    def self.register(world)
+      noob = Bukkit.new(world.bukkit)
+      def noob.cast(world, val)
+        self
+      end
+      def noob.to_s
+        'NOOB'
+      end
+      def noob.to_numeric
+        0
+      end
+      def noob.to_i
+        0
+      end
+      def noob.to_f
+        0.0
+      end
+      def noob.win?
+        false
+      end
+      world.noob = noob
     end
-    def noob.to_s
-      'NOOB'
-    end
-    def noob.to_numeric
-      0
-    end
-    def noob.to_i
-      0
-    end
-    def noob.to_f
-      0.0
-    end
-    def noob.win?
-      false
-    end
-    world.noob = noob
   end
 
   class ImmutableBukkit < Bukkit
@@ -650,7 +653,7 @@ module Lolcode
       # FIXME: why isn't this controlled by the builtin() macro?
       Bukkit.register(self)
       Primitive.register(self)
-      Lolcode::register_noob(self)
+      Noob.register(self)
       Troof.register(self)
       Proc.register(self)
       Numbr.register(self)
