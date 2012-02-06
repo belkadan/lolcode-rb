@@ -19,6 +19,7 @@ O HAI IM test
 
 	I HAS A name ITZ "(cheezburger)"
 	I HAS A counter
+	I HAS A enabled ITZ WIN
 
 	HOW IZ I checkpointin
 		MAH counter R SUM OF MAH counter AN 1
@@ -32,6 +33,12 @@ O HAI IM test
 	IF U SAY SO
 
 	HOW IZ I runnin
+		NOT MAH enabled, O RLY?
+		YA RLY
+			VISIBLE NOOB ":>" MAH name
+			GTFO
+		OIC
+
 		MAH counter R 0
 		PLZ
 			ME IZ testin MKAY
@@ -44,6 +51,10 @@ O HAI IM test
 			VISIBLE FAIL ":>" MAH name
 			VISIBLE "DO NOT WANT: " IT
 		KTHX
+	IF U SAY SO
+
+	HOW IZ I disabled
+		MAH enabled R FAIL
 	IF U SAY SO
 
 	HOW IZ I testin
