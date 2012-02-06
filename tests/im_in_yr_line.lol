@@ -13,4 +13,10 @@ IM IN YR q gettin YR things
 	VISIBLE item
 KTHX
 
+I HAS A r ITZ LINE IZ forming 5 AN 6 AN 7 AN 8
+IM IN YR r gettin YR things
+	VISIBLE IT
+KTHX
+
+
 KTHXBAI
