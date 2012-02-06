@@ -141,9 +141,34 @@ module Lolcode
     end
   end
 
+  class Primitive < Bukkit
+    def self.register(world)
+      world.magic = Bukkit.new(world.bukkit)
+    end
+
+    def initialize(world, &body)
+      super(world.magic)
+      @body = body
+    end
+
+    def call(me, arg_values)
+      @body.call(me, arg_values)
+    end
+
+    def to_s
+      '<MAGIC>'
+    end
+  end
+
   class Proc < Bukkit
     def self.register(world)
-      world.sheep = Bukkit.new(world.bukkit)
+      raise 'SHEEP requires MAGIC' if world.magic.nil?
+      sheep = Bukkit.new(world.magic)
+      sheep.init('callin', Primitive.new(world) do |me, args|
+        me.call(args.first, args.drop(1))
+      end)
+      
+      world.sheep = sheep
     end
 
     def initialize(world, env, args, vararg, body)
@@ -178,25 +203,6 @@ module Lolcode
 
     def to_s
       '<SHEEP>'
-    end
-  end
-
-  class Primitive < Bukkit
-    def self.register(world)
-      world.magic = Bukkit.new(world.bukkit)
-    end
-
-    def initialize(world, &body)
-      super(world.magic)
-      @body = body
-    end
-
-    def call(me, arg_values)
-      @body.call(me, arg_values)
-    end
-
-    def to_s
-      '<MAGIC>'
     end
   end
 
@@ -369,6 +375,8 @@ module Lolcode
       end
       zero.make_mutable!
       world.numbr = zero
+
+      world.runtime[1] = self.new(world, 1)
     end
 
     def initialize(world, val)
@@ -378,8 +386,7 @@ module Lolcode
 
     def self.new(world, val)
       return world.numbr if world.numbr and val.zero?
-      # FIXME other cached constants?
-      # return @@one if @@one and val == 1
+      return world.runtime[1] if world.runtime[1] and val == 1
       super
     end
 
@@ -437,6 +444,8 @@ module Lolcode
       end
       zero.make_mutable!
       world.numbar = zero
+
+      world.runtime[1.0] = self.new(world, 1.0)
     end
 
     def initialize(world, val)
@@ -446,8 +455,7 @@ module Lolcode
 
     def self.new(world, val)
       return world.numbar if world.numbar and val.zero?
-      # FIXME other cached constants?
-      # return @@one if @@one and val == 1.0
+      return world.runtime[1.0] if world.runtime[1.0] and val == 1.0
       super
     end
 
@@ -489,18 +497,23 @@ module Lolcode
 
   class Line < Bukkit
     class Iterator < Bukkit
-      def initialize(world, line)
-        super(world.bukkit)
-        @index = 0
-        @line = line
-        
-        # FIXME these should not be new primitives every time
-        self.init('going', Primitive.new(world) do |me, args|
+      def self.register(world)
+        iter_base = Bukkit.new(world.bukkit)
+        iter_base.init('going', Primitive.new(world) do |me, args|
+          return DoNotWant.new('Cannot use the iterator prototype directly') if me == iter_base
           me.next!
         end)
-        self.init('finished', Primitive.new(world) do |me, args|
+        iter_base.init('finished', Primitive.new(world) do |me, args|
+          return DoNotWant.new('Cannot use the iterator prototype directly') if me == iter_base
           Troof.new(world, me.finished?)
         end)
+        world.runtime[Iterator] = iter_base
+      end
+
+      def initialize(world, line)
+        super(world.runtime[Iterator])
+        @index = 0
+        @line = line
       end
       
       def next!
@@ -514,7 +527,7 @@ module Lolcode
       end
 
       def to_s
-        "<LINE'Z ITERATOR>"
+        "<LINE ITERATOR>"
       end
     end
 
@@ -531,6 +544,8 @@ module Lolcode
       end)
 
       world.line = empty
+
+      Iterator.register(world)
     end
 
     def initialize(world, contents)
@@ -630,6 +645,7 @@ module Lolcode
   class World
     def initialize
       @parser = LolcodeParser.new
+      @runtime = {}
 
       # FIXME: why isn't this controlled by the builtin() macro?
       Bukkit.register(self)
@@ -674,6 +690,7 @@ module Lolcode
     end
 
     builtin :noob, :troof, :win, :fail, :numbr, :numbar, :yarn, :magic, :sheep, :module, :line
+    attr_reader :runtime
 
     def root
       return @root if @root

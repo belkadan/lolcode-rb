@@ -37,6 +37,9 @@ O HAI IM primitive_test IM LIEK test
 
 		ME IZ checkin MAH testin IZ liek SHEEP MKAY AN "sheep"
 		ME IZ checkin MAH testin IZ liek SHEEP MKAY AN "sheep/bukkit"
+		
+		BTW not sure this is a good idea...
+		ME IZ checkin MAH testin IZ liek MAGIC MKAY AN "sheep/primitive"
 
 		ME IZ checkin NOOB IZ liek NOOB MKAY AN "noob"
 		ME IZ checkin NOOB IZ liek BUKKIT MKAY AN "noob/bukkit"
