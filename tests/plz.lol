@@ -177,7 +177,7 @@ O HAI IM subexpr_exceptions_test IM LIEK test
 	HOW IZ I iz_arg, ME IZ checkin ME IZ errorin MKAY AN "", IF U SAY SO
 	HOW IZ I mah, MAH SRS ME IZ errorin, IF U SAY SO
 	HOW IZ I z, ME'Z SRS ME IZ errorin, IF U SAY SO
-	HOW IZ I yarn, ":{SRS ME IZ errorin}:)", IF U SAY SO
+	HOW IZ I yarn, ":{SRS ME IZ errorin MKAY}:)", IF U SAY SO
 
 	HOW IZ I testin
 		CAN HAS "line"
