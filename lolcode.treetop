@@ -125,32 +125,13 @@ grammar Lolcode
 
 	rule has_a
 		var w "HAS" w "A" w ident
-		initializer:(
-			w "ITZ" w "LIEK" w ("A" w)? parent_ref:expr {
-				def liek?
-					true
-				end
-			}
-		/
-			w "ITZ" w expr {
-				def liek?
-					false
-				end
-			}
-		)?
+		initializer:(w "ITZ" w expr)?
 		{
 			def compile
 				bukkit = var.compile
 				slot = ident.text_value
 				if initializer.empty?
 					initial = lambda {|env| env.world.noob}
-				elsif initializer.liek?
-					parent = initializer.parent_ref.compile
-					initial = lambda {|env|
-						parent_val = parent.call(env)
-						return parent_val if parent_val.is_a?(DoNotWant)
-						Bukkit.new(parent_val)
-					}
 				else
 					initial = initializer.expr.compile
 				end
@@ -167,24 +148,27 @@ grammar Lolcode
 
 	rule o_hai_im
 		'O' w 'HAI' w 'IM' w var
-		liek_clause:(w 'IM' w 'LIEK' w parent:expr)?
+		liek_clause:(w 'IM' w liek)?
 		eos
 		o_hai_im_body
 		{
 			def compile
 				name = var.compile
 				body = o_hai_im_body.compile
-				parent_var = liek_clause.parent.compile unless liek_clause.empty?
+				if liek_clause.empty?
+					initial = lambda {|env| Bukkit.new(env.world.bukkit) }
+				else
+					initial = liek_clause.liek.compile
+				end
 				lambda {|env|
 					base = name.call(env)
 					return base if base.is_a?(DoNotWant)
 					slot = base.pop
 					base = Environment::I if base.empty?
 
-					parent = if parent_var then parent_var.call(env) else env.world.bukkit end
-					return parent if parent.is_a?(DoNotWant)
+					new_bukkit = initial.call(env)
+					return new_bukkit if new_bukkit.is_a?(DoNotWant)
 
-					new_bukkit = Bukkit.new(parent)
 					if body
 						bukkit_env = Environment.new(env.world, env)
 						bukkit_env.set(Environment::I, new_bukkit)
@@ -949,6 +933,27 @@ grammar Lolcode
 		cast
 	/
 		can_has
+	/
+		liek
+	end
+
+	rule liek
+		(
+			'LIEK' (w 'A')?
+		/
+			'A'
+		)
+		w expr
+		{
+			def compile
+				parent = expr.compile
+				lambda {|env|
+					parent_val = parent.call(env)
+					return parent_val if parent_val.is_a?(DoNotWant)
+					Bukkit.new(parent_val)
+				}
+			end
+		}
 	end
 
 	rule monadic_op
