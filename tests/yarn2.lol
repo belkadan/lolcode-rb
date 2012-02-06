@@ -41,4 +41,28 @@ O HAI IM longness_mutation_test IM LIEK test
 	I IZ runnin
 KTHX
 
+O HAI IM nested_quotes_test IM LIEK test
+	MAH name R "nested quotes via SRS"
+	I IZ disabled
+
+	HOW IZ I testin
+		BTW this should be a syntax error
+		":{SRS "IT"}"
+	IF U SAY SO
+
+	I IZ runnin
+KTHX
+
+O HAI IM bad_srs_test IM LIEK test
+	MAH name R "bad SRS"
+	I IZ disabled
+
+	HOW IZ I testin
+		BTW this should be a syntax error
+		":{SRS not an expr}"
+	IF U SAY SO
+
+	I IZ runnin
+KTHX
+
 KTHXBAI
