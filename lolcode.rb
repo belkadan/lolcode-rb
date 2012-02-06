@@ -9,7 +9,7 @@ module Lolcode
       @name = name
     end
     def value
-      noob
+      nil
     end
   end
 
@@ -173,7 +173,7 @@ module Lolcode
       return result if result.is_a?(DoNotWant)
       # FIXME some kind of RuntimeError type, not a string?
       return DoNotWant.new('No such loop: ' + result.name) if result.name
-      result.value
+      result.value || @env.world.noob
     end
 
     def to_s
