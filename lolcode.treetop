@@ -319,7 +319,12 @@ grammar Lolcode
 				lambda {|env|
 					arg_val = arg.call(env)
 					return arg_val if arg_val.is_a?(DoNotWant)
-					env.set(arg_val, gets())
+					input = gets
+					if input
+						env.set(arg_val, Yarn.new(env.world, input.chomp))
+					else
+						env.set(arg_val, env.world.noob)
+					end
 				}
 			end
 		}
