@@ -534,6 +534,22 @@ module Lolcode
       end
     end
 
+    class ReverseIterator < Iterator
+      def initialize(world, line)
+        super
+        @index = line.contents.count
+      end
+
+      def next!
+        @index -= 1
+        @line.contents[@index]
+      end
+
+      def finished?
+        @index == 0
+      end
+    end
+
     def self.register(world)
       raise 'LINE requires MAGIC' if world.magic.nil?
       empty = self.new(world, [])
@@ -544,6 +560,9 @@ module Lolcode
       end
       empty.init('gettin', Primitive.new(world) do |me, args|
         Iterator.new(world, me)
+      end)
+      empty.init('reversin', Primitive.new(world) do |me, args|
+        ReverseIterator.new(world, me)
       end)
 
       world.line = empty
