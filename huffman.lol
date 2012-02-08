@@ -64,7 +64,21 @@ HOW IZ I decoding YR bits AN YR tree
 		OIC
 	IF U SAY SO
 
-	I IZ stepping YR bits AN YR tree
+	bits IZ liek LINE, O RLY?
+	YA RLY
+		I HAS A branch ITZ tree
+		IM IN YR bits gettin YR items
+			I IZ choosing IT AN branch
+			branch R IT
+			branch IZ liek leaf, O RLY?
+			YA RLY
+				VISIBLE branch'Z symbol!
+				branch R tree
+			OIC	
+		KTHX
+	NO WAI	
+		I IZ stepping YR bits AN YR tree
+	OIC
 	VISIBLE "", BTW newline
 IF U SAY SO
 
@@ -166,6 +180,17 @@ I IZ consing 0 AN...
 NOOB, I HAS A sample_message ITZ IT
 
 I IZ decoding YR sample_message AN sample_tree
+
+CAN HAS "tests/line"
+LINE IZ forming...
+	1 AN 1 AN 1 AN 1 AN 0 AN...
+	1 AN 1 AN 1 AN 1 AN 0 AN...
+	1 AN 1 AN 1 AN 1 AN 1 AN...
+	1 AN 0 AN 0 AN 0 AN 1 AN...
+	1 AN 1 AN 0 AN 1 AN 0 AN...
+	0
+I HAS A line_message ITZ IT
+I IZ decoding line_message AN sample_tree 
 
 I IZ consing "S" AN...
 I IZ consing "C" AN...
