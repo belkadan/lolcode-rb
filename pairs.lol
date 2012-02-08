@@ -37,4 +37,33 @@ HOW IZ I appending YR left AN YR right
 	I IZ consing left'Z first AN IT
 IF U SAY SO
 
+HOW IZ I listing ALL YR things
+	I HAS A head
+	IM IN YR things reversin YR elements
+		I IZ consing IT AN head
+		head R IT
+	KTHX
+IF U SAY SO
+
+ME IZ frist, O RLY?
+YA RLY
+	CAN HAS "tests/test"
+	
+	O HAI IM A test
+		MAH name R "listing"
+		I IZ disabled, BTW because BOTH SAEM can't be changed right now...
+
+		HOW IZ I testin
+			ME IZ checkin BOTH SAEM I IZ listing MKAY AN NOOB AN "()"
+			ME IZ checkin BOTH SAEM I IZ listing 1 MKAY AN I IZ consing 1 AN NOOB MKAY AN "(1)"
+			ME IZ checkin BOTH SAEM...
+				I IZ listing 1 AN 2 AN 3 MKAY AN...
+				I IZ consing 1 AN I IZ consing 2 AN I IZ consing 3 AN NOOB MKAY MKAY MKAY AN...
+				"(1 2 3)"
+		IF U SAY SO
+
+		I IZ runnin
+	KTHX
+OIC
+
 KTHXBAI
