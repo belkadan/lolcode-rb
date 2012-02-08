@@ -1,3 +1,5 @@
+#!/usr/bin/ruby
+require 'rubygems'
 require 'treetop'
 
 module Lolcode
@@ -862,3 +864,8 @@ module Lolcode
     success
   end
 end
+
+if $0 == __FILE__
+  Lolcode::load(ARGV[0]) if ARGV[0]
+end
+
