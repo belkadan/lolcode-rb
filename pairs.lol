@@ -20,6 +20,25 @@ O HAI IM pair
 			NO WAI, VISIBLE "", BTW newline
 		OIC
 	IF U SAY SO
+
+	BTW IM LIEK ITERATOR?
+	O HAI IM iterator
+		I HAS A start
+		HOW IZ I going
+			I HAS A value ITZ MAH start'Z first
+			MAH start R MAH start'Z rest
+			FOUND YR value
+		IF U SAY SO
+		HOW IZ I finished
+			BOTH SAEM MAH start AN NOOB
+		IF U SAY SO
+	KTHX
+
+	HOW IZ I gettin
+		I HAS A iter ITZ LIEK MAH iterator
+		iter'Z start R ME
+		FOUND YR iter
+	IF U SAY SO
 KTHX
 
 HOW IZ I consing YR left AN YR right

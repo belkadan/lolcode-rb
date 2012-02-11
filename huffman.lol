@@ -49,36 +49,16 @@ HOW IZ I decoding YR bits AN YR tree
 		OIC
 	IF U SAY SO
 
-	HOW IZ I stepping YR bits AN YR branch
-		bits, O RLY?
+	I HAS A branch ITZ tree
+	IM IN YR bits gettin YR items
+		I IZ choosing IT AN branch
+		branch R IT
+		branch IZ liek leaf, O RLY?
 		YA RLY
-			I IZ choosing bits'Z first AN branch
-			I HAS A choice ITZ IT
-			choice IZ liek leaf, O RLY?
-			YA RLY
-				VISIBLE choice'Z symbol!
-				I IZ stepping bits'Z rest AN tree
-			NO WAI
-				I IZ stepping bits'Z rest AN choice
-			OIC
-		OIC
-	IF U SAY SO
-
-	bits IZ liek LINE, O RLY?
-	YA RLY
-		I HAS A branch ITZ tree
-		IM IN YR bits gettin YR items
-			I IZ choosing IT AN branch
-			branch R IT
-			branch IZ liek leaf, O RLY?
-			YA RLY
-				VISIBLE branch'Z symbol!
-				branch R tree
-			OIC	
-		KTHX
-	NO WAI	
-		I IZ stepping YR bits AN YR tree
-	OIC
+			VISIBLE branch'Z symbol!
+			branch R tree
+		OIC	
+	KTHX
 	VISIBLE "", BTW newline
 IF U SAY SO
 
