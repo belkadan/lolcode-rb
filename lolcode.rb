@@ -670,6 +670,7 @@ module Lolcode
     def initialize
       @parser = LolcodeParser.new
       @runtime = {}
+      @wd = [Dir.pwd]
 
       # FIXME: why isn't this controlled by the builtin() macro?
       Bukkit.register(self)
@@ -744,14 +745,19 @@ module Lolcode
     end
 
     def load(filename)
-      filename = filename.to_str
-      filename += '.lol' unless filename.end_with? '.lol'
+      path = filename.to_str
+      path += '.lol' unless path.end_with? '.lol'
+      # FIXME lolpath?
+      path = File.join(@wd.last, path)
       # FIXME better error handling
       # Also see the exceptions raised by run()
       begin
         loaded_module = Module.new(self)
         @root = loaded_module if @root.nil?
-        result = run(File.read(filename), loaded_module)
+        input = File.read(path)
+        @wd.push(File.dirname(path))
+        result = run(input, loaded_module)
+        @wd.pop
         if result
           return result if result.is_a?(DoNotWant)
           return DoNotWant.new('No such loop: ' + result.name) if result.name
@@ -845,23 +851,28 @@ module Lolcode
   end
 
   def self.load(filename)
-    !World.new.load(filename).is_a?(DoNotWant)
+    world = World.new
+    result = world.load(filename)
+    return true if result.is_a?(Module)
+    world.catch_top_level_result(result, true)
   end
 
   def self.run_tests(interactive = true, test_dir = '.')
     success = true
-    Dir.entries(test_dir).select {|x| File.extname(x) == '.lol'}.each do |file|
-      print file
-      if interactive then gets else puts end
-      begin
-        World.new.load(file)
-      rescue StandardError => problem
-        puts 'ERROR: ' + problem
-        success = false
+    Dir.chdir(test_dir) do
+      Dir.entries('.').select {|x| File.extname(x) == '.lol'}.each do |file|
+        print file
+        if interactive then gets else puts end
+        begin
+          World.new.load(file)
+        rescue StandardError => problem
+          puts 'ERROR: ' + problem
+          success = false
+        end
+        puts
       end
-      puts
+      success
     end
-    success
   end
 end
 

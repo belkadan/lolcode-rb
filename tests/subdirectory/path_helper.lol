@@ -1,0 +1,6 @@
+HAI 1.3
+
+VISIBLE "I MAED YOU A COOKIE..."
+CAN HAS "../path"
+
+KTHXBAI
