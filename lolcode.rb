@@ -143,13 +143,13 @@ module Lolcode
     end
   end
 
-  class Primitive < Bukkit
+  class Magic < Bukkit
     def self.register(world)
       magic = Bukkit.new(world.bukkit)
       # This MUST happen before putting any primitive methods on MAGIC! (Duh.)
       world.magic = magic
 
-      magic.init('callin', Primitive.new(world) do |me, args|
+      magic.init('callin', Magic.new(world) do |me, args|
         me.call(args.first, args.drop(1))
       end)
     end
@@ -168,14 +168,14 @@ module Lolcode
     end
   end
 
-  class Proc < Bukkit
+  class Sheep < Bukkit
     def self.register(world)
       raise 'SHEEP requires MAGIC' if world.magic.nil?
       world.sheep = Bukkit.new(world.magic)
     end
 
-    def initialize(world, env, args, vararg, body)
-      super(world.sheep)
+    def initialize(env, args, vararg, body)
+      super(env.world.sheep)
       @env = env
       @args = args
       @vararg = vararg
@@ -504,11 +504,11 @@ module Lolcode
     class Iterator < Bukkit
       def self.register(world)
         iter_base = Bukkit.new(world.bukkit)
-        iter_base.init('going', Primitive.new(world) do |me, args|
+        iter_base.init('going', Magic.new(world) do |me, args|
           return DoNotWant.new('Cannot use the iterator prototype directly') if me == iter_base
           me.next!
         end)
-        iter_base.init('finished', Primitive.new(world) do |me, args|
+        iter_base.init('finished', Magic.new(world) do |me, args|
           return DoNotWant.new('Cannot use the iterator prototype directly') if me == iter_base
           Troof.new(world, me.finished?)
         end)
@@ -560,10 +560,10 @@ module Lolcode
         return self if val.is_a?(Noob)
         Line.new(world, [val])
       end
-      empty.init('gettin', Primitive.new(world) do |me, args|
+      empty.init('gettin', Magic.new(world) do |me, args|
         Iterator.new(world, me)
       end)
-      empty.init('reversin', Primitive.new(world) do |me, args|
+      empty.init('reversin', Magic.new(world) do |me, args|
         ReverseIterator.new(world, me)
       end)
 
@@ -642,13 +642,17 @@ module Lolcode
       I = ['I']
       Me = 'ME'
     end
+
+    def closure(arg_names, rest_name, body)
+      Sheep.new(self, arg_names, rest_name, body)
+    end
   end
 
   class Module < Environment
     def self.register(world)
       raise 'MODULE requires MAGIC' if world.magic.nil?
       module_bukkit = Bukkit.new(world.bukkit)
-      module_bukkit.init('frist', Primitive.new(world) do |me, args|
+      module_bukkit.init('frist', Magic.new(world) do |me, args|
         Troof.new(world, me == world.root)
       end)
       world.module = module_bukkit
@@ -672,20 +676,13 @@ module Lolcode
       @runtime = {}
       @wd = [Dir.pwd]
 
-      # FIXME: why isn't this controlled by the builtin() macro?
       Bukkit.register(self)
-      Primitive.register(self)
-      Noob.register(self)
-      Troof.register(self)
-      Proc.register(self)
-      Numbr.register(self)
-      Numbar.register(self)
-      Yarn.register(self)
-      Module.register(self)
-      Line.register(self)
+      @@builtins.each do |builtin|
+        builtin.register(self)
+      end
 
       # This needs to happen AFTER all primitives have been initialized!
-      liek = Primitive.new(self) do |me, args|
+      liek = Magic.new(self) do |me, args|
         Troof.new(self, me.liek?(args.first))
       end
       bukkit.init('liek', liek)
@@ -699,12 +696,13 @@ module Lolcode
     attr_reader :bukkit
 
     def self.builtin(*names)
+      names = names.map(&:to_s)
       names.each do |name|
         class_eval %{
           def #{name}=(val)
             raise 'Must register BUKKIT first' if bukkit.nil?
             @#{name} = val
-            bukkit.init('#{name.to_s.upcase}', val)
+            bukkit.init('#{name.upcase}', val)
           end
 
           def #{name}
@@ -712,9 +710,13 @@ module Lolcode
           end
         }
       end
+      @@builtins += names.map(&:capitalize).map do |name|
+        Lolcode.const_get(name) if Lolcode.const_defined?(name)
+      end.reject(&:nil?)
     end
 
-    builtin :noob, :troof, :win, :fail, :numbr, :numbar, :yarn, :magic, :sheep, :module, :line
+    @@builtins = []
+    builtin :magic, :noob, :troof, :win, :fail, :numbr, :numbar, :yarn, :sheep, :module, :line
     attr_reader :runtime
 
     def root
@@ -857,7 +859,7 @@ module Lolcode
     world.catch_top_level_result(result, true)
   end
 
-  def self.run_tests(interactive = true, test_dir = '.')
+  def self.run_tests(test_dir = '.', interactive = true)
     success = true
     Dir.chdir(test_dir) do
       Dir.entries('.').select {|x| File.extname(x) == '.lol'}.each do |file|

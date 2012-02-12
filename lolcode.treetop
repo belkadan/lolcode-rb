@@ -248,7 +248,7 @@ grammar Lolcode
 				lambda {|env|
 					bukkit_val = bukkit.call(env)
 					return bukkit_val if bukkit_val.is_a?(DoNotWant)
-					proc = Lolcode::Proc.new(env.world, env, arg_names, rest_name, body)
+					proc = env.closure(arg_names, rest_name, body)
 					env.create(bukkit_val, slot, proc);
 				}
 			end
