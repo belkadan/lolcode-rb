@@ -185,8 +185,10 @@ module Lolcode
     def call(me, arg_values)
       new_env = Environment.new(@env.world, @env)
       new_env.init(Environment::Me, me)
+
+      return DoNotWant.new('Too few arguments!') if arg_values.length < @args.length
+
       @args.zip(arg_values).each do |var, val|
-        # FIXME behavior for too /few/ args?
         new_env.init(var, val)
       end
       
