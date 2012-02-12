@@ -36,7 +36,7 @@ grammar Lolcode
 	end
 
 	rule ignored_line
-		w? (btw / "\n")
+		w? (btw / "\n" / obtw eos)
 	end
 
 	rule hai
@@ -49,8 +49,6 @@ grammar Lolcode
 
 	rule stmt
 		action:(
-			obtw
-		/
 			has_a
 		/
 			o_hai_im
@@ -101,12 +99,6 @@ grammar Lolcode
 
 	rule obtw
 		"OBTW" [ \t\n]+ (!("TLDR" eos) [^ \t\n]+ [ \t\n]+)* "TLDR"
-		{
-			def compile
-				# FIXME ugh
-				lambda {|env| nil}
-			end
-		}
 	end
 
 	rule can_has
@@ -523,6 +515,7 @@ grammar Lolcode
 			end
 		}
 	/
+		ignored_line*
 		w? stmt
 		body:omg_body
 		{
