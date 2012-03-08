@@ -1,13 +1,10 @@
 #!/usr/bin/ruby
-require 'rubygems'
-require 'treetop'
 
 # FIXME use proper Gem packaging here
+require 'lib/lolcode/compile'
 require 'lib/lolcode/runtime'
 
 module Lolcode
-  Treetop.load(File.join(File.dirname(__FILE__), 'lib', 'lolcode', 'lolcode.treetop'))
-
   def self.run_interpreter(options = {})
     Runtime::World.new.run_interpreter(options)
   end
