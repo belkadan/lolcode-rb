@@ -120,7 +120,7 @@ grammar Lolcode
 				bukkit = var.compile
 				slot = ident.text_value
 				initial = initializer.expr.compile unless initializer.empty?
-				Compile.has_a(bukkit, slot, initial)
+				Compile::has_a(bukkit, slot, initial)
 			end
 		}
 	end
@@ -198,12 +198,7 @@ grammar Lolcode
 					end
 				end
 				body = function_body.compile
-				lambda {|env|
-					bukkit_val = bukkit.call(env)
-					return bukkit_val if bukkit_val.is_a?(Runtime::DoNotWant)
-					proc = env.closure(arg_names, rest_name, body)
-					env.create(bukkit_val, slot, proc);
-				}
+				Compile::how_iz(bukkit, slot, arg_names, rest_name, body)
 			end
 		}
 	end
@@ -213,8 +208,7 @@ grammar Lolcode
 		w? 'IF' w 'U' w 'SAY' w 'SO'
 		{
 			def compile
-				# Falling off the end of a function body >> FOUND IT
-				lambda {|env| Runtime::Result.new(env.get(Runtime::Environment::It)) }
+				Compile::if_u_say_so
 			end
 		}
 	/
@@ -223,9 +217,7 @@ grammar Lolcode
 		body:function_body
 		{
 			def compile
-				action = stmt.compile
-				rest = body.compile					
-				lambda {|env| action.call(env) || rest.call(env) }
+				Compile::sequence(stmt.compile, body.compile)
 			end
 		}
 	end
@@ -237,21 +229,10 @@ grammar Lolcode
 		{
 			def compile
 				args = [expr.compile]
-				rest.elements.each do |arg|
+				rest.elements.map do |arg|
 					args.push arg.expr.compile
 				end
-				lambda {|env|
-					error = args.each do |arg|
-						arg_val = arg.call(env)
-						break arg_val if arg_val.is_a?(Runtime::DoNotWant)
-						arg_yarn = Runtime::Yarn.cast(env.world, arg_val)
-						break arg_yarn if arg_yarn.is_a?(Runtime::DoNotWant)
-						print arg_yarn
-					end
-					return error if error.is_a?(Runtime::DoNotWant)
-					puts '' if omit_newline.empty?
-					nil
-				}
+				Compile::visible(args, omit_newline.empty?)
 			end
 		}
 	end
@@ -260,17 +241,7 @@ grammar Lolcode
 		"GIMMEH" w var
 		{
 			def compile
-				arg = var.compile
-				lambda {|env|
-					arg_val = arg.call(env)
-					return arg_val if arg_val.is_a?(Runtime::DoNotWant)
-					input = gets
-					if input
-						env.set(arg_val, Runtime::Yarn.new(env.world, input.chomp))
-					else
-						env.set(arg_val, env.world.noob)
-					end
-				}
+				Compile::gimmeh(var.compile)
 			end
 		}
 	end
@@ -279,15 +250,7 @@ grammar Lolcode
 		var w 'R' w expr
 		{
 			def compile
-				sink = var.compile
-				source = expr.compile
-				lambda {|env|
-					sink_val = sink.call(env)
-					return sink_val if sink_val.is_a?(Runtime::DoNotWant)
-					source_val = source.call(env)
-					return source_val if source_val.is_a?(Runtime::DoNotWant)
-					env.set(sink_val, source_val)
-				}
+				Compile::assign(var.compile, expr.compile)
 			end
 		}
 	end
@@ -296,23 +259,7 @@ grammar Lolcode
 		var:var w 'IS' w 'NOW' w 'A' w typename:var
 		{
 			def compile
-				mem = var.compile
-				type = typename.compile
-				lambda {|env|
-					# It is conceivable that the variable could be SRSing itself...
-					# Fix the reference before doing any modification.
-					curr_var = mem.call(env)
-					return curr_var if curr_var.is_a?(Runtime::DoNotWant)
-					type_var = type.call(env)
-					return type_var if type_var.is_a?(Runtime::DoNotWant)
-					type_val = env.get(type_var)
-					return type_val if type_val.is_a?(Runtime::DoNotWant)
-					curr_val = env.get(curr_var)
-					return curr_val if curr_val.is_a?(Runtime::DoNotWant)
-					val = type_val.cast(env.world, curr_val)
-					return val if val.is_a?(Runtime::DoNotWant)
-					env.set(curr_var, val)
-				}
+				Compile::is_now_a(var.compile, typename.compile)
 			end
 		}
 	end
@@ -321,12 +268,7 @@ grammar Lolcode
 		expr
 		{
 			def compile
-				value = super
-				lambda {|env|
-					val = value.call(env)
-					return val if val.is_a?(Runtime::DoNotWant)
-					env.set(Runtime::Environment::It, val)
-				}
+				Compile::set_it(super)
 			end
 		}
 	end
@@ -829,12 +771,7 @@ grammar Lolcode
 	/
 		var {
 			def compile
-				var_ref = super
-				lambda {|env|
-					runtime_var = var_ref.call(env)
-					return runtime_var if runtime_var.is_a?(Runtime::DoNotWant)
-					env.get(runtime_var)
-				}
+				Compile::get(super)
 			end
 		}
 	/
