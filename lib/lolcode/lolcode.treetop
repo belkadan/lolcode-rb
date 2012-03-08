@@ -293,24 +293,8 @@ grammar Lolcode
 				alternatives = mebbes.elements.map do |mebbe|
 					[mebbe.expr.compile, mebbe.body.compile]
 				end
-				alternatives.push [nil, no_wai.body.compile] unless no_wai.empty?
-				lambda {|env|
-					if env.get(Runtime::Environment::It).win?
-						consequent.call(env) if consequent
-					else
-						chosen = alternatives.find do |alt|
-							if alt[0]
-								test = alt[0].call(env)
-								break test if test.is_a?(Runtime::DoNotWant)
-								test.win?
-							else
-								true
-							end
-						end
-						return chosen if chosen.is_a?(Runtime::DoNotWant)
-						chosen[1].call(env) if chosen and chosen[1]
-					end
-				}
+				last_alternative = no_wai.body.compile unless no_wai.empty?
+				Compile::o_rly(consequent, alternatives, last_alternative)
 			end
 		}
 	end
@@ -371,20 +355,7 @@ grammar Lolcode
 					[omg.literal.value, omg.body.compile]
 				end
 				choices.push [nil, omgwtf.body.compile] unless omgwtf.empty?
-				lambda {|env|
-					test_var = env.get(Runtime::Environment::It)
-					result = nil
-					choices.drop_while do |literal, body|
-						literal and test_var != literal
-					end.each do |literal, body|
-						result = body.call(env) if body
-						if result
-							result = nil if result.is_a? Runtime::GTFO and result.name.nil?
-							break
-						end
-					end
-					result
-				}
+				Compile::wtf(choices)
 			end
 		}
 	end
@@ -434,13 +405,13 @@ grammar Lolcode
 			w? "O" w "NOES" w 
 			condition:(
 				"ITZ" w "A" w kind:expr {
-					def liek?
+					def is_liek?
 						true
 					end
 				}
 			/
 				expr {
-					def liek?
+					def is_liek?
 						false
 					end
 				}
@@ -457,45 +428,16 @@ grammar Lolcode
 			def compile
 				action = body.compile
 				handlers = o_noeses.elements.map do |o_noes|
-					if o_noes.condition.liek?
+					if o_noes.condition.is_liek?
 						parent = o_noes.condition.kind.compile
-						cond = lambda {|env|
-							# We can't just test this directly because
-							# someone could override their 'liek' slot
-							parent_val = parent.call(env)
-							return parent_val if parent_val.is_a?(Runtime::DoNotWant)
-							problem = env.get(Runtime::Environment::It)
-							liek = problem.get(['liek'])
-							return liek if liek.is_a?(Runtime::DoNotWant)
-							liek.call(problem, [parent_val])
-						}
+						cond = Compile::itz_a(parent)
 					else
 						cond = o_noes.condition.compile
 					end
 					[cond, o_noes.body.compile]
 				end
 				cleanup = o_wel.body.compile unless o_wel.empty?
-				lambda {|env|
-					result = action.call(env) if action
-					if result and result.is_a? Runtime::DoNotWant
-						env.set(Runtime::Environment::It, result.value)
-						chosen = handlers.find do |handler|
-							test = handler[0].call(env)
-							break test if test.is_a?(Runtime::DoNotWant)
-							test.win?
-						end
-						# FIXME nested exceptions...which takes priority?
-						# This says the O NOES test's exception wins...
-						if chosen.is_a?(Runtime::DoNotWant)
-							result = chosen
-						elsif chosen and chosen[1]
-							result = chosen[1].call(env)
-						end
-					end
-					# ...but this says the cleanup clause's exception loses
-					cleanup_result = cleanup.call(env) if cleanup
-					result || cleanup_result
-				}
+				Compile::plz(action, handlers, cleanup)
 			end
 		}
 	end
@@ -600,44 +542,7 @@ grammar Lolcode
 				obj = expr.compile
 				slot = ident.text_value
 				name = label.text_value
-				lambda {|env|
-					base = obj.call(env)
-					return base if base.is_a?(Runtime::DoNotWant)
-
-					iter_function = base.get([slot])
-					return iter_function if iter_function.is_a?(Runtime::DoNotWant)
-					iter = iter_function.call(base, [])
-					return iter if iter_function.is_a?(Runtime::DoNotWant)
-
-					while true
-						test = iter.get(['finished'])
-						return test if test.is_a?(Runtime::DoNotWant)
-						finished = test.call(iter, [])
-						return finished if finished.is_a?(Runtime::DoNotWant)
-						break if finished.win?
-
-						advance = iter.get(['going'])
-						return advance if advance.is_a?(Runtime::DoNotWant)
-						item = advance.call(iter, [])
-						return item if item.is_a?(Runtime::DoNotWant)
-						env.set(Runtime::Environment::It, item)
-
-						# FIXME copypasta from below
-						result = body.call(env) if body
-						if result
-							if result.is_a? Runtime::GTFO
-								break if result.name.nil? or result.name == name
-								return result
-							elsif result.is_a? Runtime::Whatever
-								break if result.name and result.name != name
-								# otherwise, just jump to the top of the loop, which is right
-							else
-								return result
-							end
-						end
-					end
-					nil
-				}
+				Compile::im_in_yr_bukkit(obj, slot, name, body)
 			end
 		}
 	end
@@ -663,17 +568,7 @@ grammar Lolcode
 				def compile
 					loop_var = var.compile
 					incr = dir.op
-					lambda {|env|
-						# It is conceivable that the loop variable could be SRSing itself...
-						# Fix the reference before doing any modification.
-						curr_var = loop_var.call(env)
-						return curr_var if curr_var.is_a?(Runtime::DoNotWant)
-						curr_val = env.get(curr_var)
-						return curr_val if curr_val.is_a?(Runtime::DoNotWant)
-						val = Runtime::Numbr.cast(env.world, curr_val)
-						return val if val.is_a?(Runtime::DoNotWant)
-						env.set(curr_var, val.send(incr, env.world))
-					}
+					Compile::uppin(loop_var, incr)
 				end
 			}
 		)?
@@ -696,11 +591,7 @@ grammar Lolcode
 				def compile
 					cond = expr.compile
 					final = waiting_for.value
-					lambda {|env|
-						test = cond.call(env)
-						return test if test.is_a?(Runtime::DoNotWant)
-						test.win? == final
-					}
+					Compile::wile(cond, final)
 				end
 			}
 		)?
@@ -711,31 +602,7 @@ grammar Lolcode
 				test = condition.compile unless condition.empty?
 				incr = increment.compile unless increment.empty?
 				name = ident.text_value
-				lambda {|env|
-					while true
-						if test
-							test_val = test.call(env)
-							return test_val if test_val.is_a?(Runtime::DoNotWant)
-							break unless test_val
-						end
-
-						result = body.call(env) if body
-						if result
-							if result.is_a? Runtime::GTFO
-								break if result.name.nil? or result.name == name
-								return result
-							elsif result.is_a? Runtime::Whatever
-								break if result.name and result.name != name
-								# otherwise, just jump to the increment, which is right
-							else
-								return result
-							end
-						end
-						incr_result = incr.call(env) if incr
-						return incr_result if incr_result.is_a?(Runtime::DoNotWant)
-					end
-					nil
-				}
+				Compile::im_in_yr(name, incr, test, body)
 			end
 		}
 	end
