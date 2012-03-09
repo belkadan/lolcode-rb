@@ -784,44 +784,27 @@ grammar Lolcode
 	rule var
 		'MAH' w var {
 			def compile
-				rest = var.compile
-				lambda {|env|
-					pieces = rest.call(env)
-					return pieces if pieces.is_a?(Runtime::DoNotWant)
-					pieces.unshift(Runtime::Environment::Me)
-				}
+				Compile::mah(var.compile)
 			end
 		}
 	/
 		'SRS' w expr {
 			def compile
 				# FIXME "SRS" with "'Z"? Or just say no?
-				val = expr.compile
-				lambda {|env|
-					actual = val.call(env)
-					return actual if actual.is_a?(Runtime::DoNotWant)
-					[actual.to_str]
-				}
+				Compile::srs(expr.compile)
 			end
 		}
 	/
 		# FIXME allow <expr>'Z <slot>?
 		ident w? "'Z" w var {
 			def compile
-				base = ident.text_value
-				rest = var.compile
-				lambda {|env|
-					pieces = rest.call(env)
-					return pieces if pieces.is_a?(Runtime::DoNotWant)
-					pieces.unshift(base)
-				}
+				Compile::slot(ident.text_value, var.compile)
 			end
 		}
 	/
 		ident {
 			def compile
-				name = text_value
-				lambda {|env| [name] }
+				Compile::var(self.text_value)
 			end
 		}
 	end

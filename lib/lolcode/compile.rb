@@ -528,6 +528,27 @@ module Lolcode
 					Runtime::Yarn.cast(env.world, val)
 				}
 			end
+			
+			def var(name)
+				lambda {|env| [name] }
+			end
+			def slot(base, rest)
+				lambda {|env|
+					pieces = rest.call(env)
+					return pieces if pieces.is_a?(Runtime::DoNotWant)
+					pieces.unshift(base)
+				}
+			end
+			def mah(rest)
+				slot(Runtime::Environment::Me, rest)
+			end
+			def srs(expr)
+				lambda {|env|
+					actual = expr.call(env)
+					return actual if actual.is_a?(Runtime::DoNotWant)
+					[Runtime::Yarn.cast(env.world, actual).to_s]
+				}
+			end
     end
   end
 end
