@@ -908,14 +908,7 @@ grammar Lolcode
 					text_value
 				end
 				def compile
-					var_ref = var.compile
-					lambda {|env|
-						actual_var = var_ref.call(env)
-						return actual_var if actual_var.is_a?(Runtime::DoNotWant)
-						val = env.get(actual_var)
-						return val if val.is_a?(Runtime::DoNotWant)
-						Runtime::Yarn.cast(env.world, val)
-					}
+					Compile::to_yarn(var.compile)
 				end
 			}
 		/
@@ -950,17 +943,7 @@ grammar Lolcode
 					pieces += mutable.map(&:compile)
 					chars.shift(mutable.count)
 				end
-				lambda {|env|
-					chars = pieces.map do |char|
-						if char.respond_to?(:call)
-							char = char.call(env)
-							break char if char.is_a?(Runtime::DoNotWant)
-						end
-						char
-					end
-					return chars if chars.is_a?(Runtime::DoNotWant)
-					Runtime::Yarn.new(env.world, chars.join)
-				}
+				Compile::yarn(pieces)
 			end
 		}
 	end

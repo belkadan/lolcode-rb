@@ -503,6 +503,31 @@ module Lolcode
 			def numbr(val)
 				lambda {|env| Runtime::Numbr.new(env.world, val) }
 			end
+			
+			def yarn(pieces)
+				lambda {|env|
+					strs = pieces.map do |piece|
+						if piece.respond_to?(:call)
+							piece = piece.call(env)
+							break piece if piece.is_a?(Runtime::DoNotWant)
+						end
+						piece
+					end
+					return strs if strs.is_a?(Runtime::DoNotWant)
+					Runtime::Yarn.new(env.world, strs.join)
+				}
+			end
+			
+			def to_yarn(var)
+				# FIXME: This is really a composite of other things, huh.
+				lambda {|env|
+					actual_var = var.call(env)
+					return actual_var if actual_var.is_a?(Runtime::DoNotWant)
+					val = env.get(actual_var)
+					return val if val.is_a?(Runtime::DoNotWant)
+					Runtime::Yarn.cast(env.world, val)
+				}
+			end
     end
   end
 end
