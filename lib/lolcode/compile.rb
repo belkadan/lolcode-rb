@@ -279,6 +279,7 @@ module Lolcode
       end
 
       def is_now_a(var, type)
+				# FIXME: share code with MAEK?
 				lambda {|env|
 					# It is conceivable that the variable could be SRSing itself...
 					# Fix the reference before doing any modification.
@@ -316,6 +317,28 @@ module Lolcode
 					liek.call(problem, [parent_val])
 				}
       end
+			
+			def found_yr(kind, value)
+				result_class = case kind
+				               when :FoundYr   then Runtime::Result
+				               when :DoNotWant then Runtime::DoNotWant
+				               else raise 'Unknown function exit kind'
+				               end
+				lambda {|env|
+					val = value.call(env)
+					return val if val.is_a?(Runtime::DoNotWant)
+					result_class.new(val)
+				}
+			end
+
+			def gtfo(kind, label)
+				result_class = case kind
+				               when :GTFO     then Runtime::GTFO
+				               when :WHATEVER then Runtime::Whatever
+				               else raise 'Unknown lop exit kind'
+				               end
+				lambda {|env| result_class.new(label) }
+			end
 
       def sequence(first, second)
   			if second
@@ -324,6 +347,162 @@ module Lolcode
   				first
   			end
       end
+      
+      def monadic_op(op_name)
+        case op_name
+        when :NOT
+  				lambda {|a, world| Runtime::Troof.new(world, !a.win?) }
+        when :LIEK
+          lambda {|a, world| Runtime::Bukkit.new(a) }
+        else
+          raise 'Unknown monadic operator'
+        end
+      end
+      
+      def apply_monadic(op, arg)
+				lambda {|env|
+					arg_val = arg.call(env)
+					return arg_val if arg_val.is_a?(Runtime::DoNotWant)
+					op.call(arg_val, env.world)
+				}
+      end
+      
+			def numeric_dyadic_op(op_name)
+				op = case op_name
+				     when :SUM
+				     	lambda {|a,b| a + b }
+				     when :DIFF
+				     	lambda {|a,b| a - b }
+				     when :PRODUKT
+				     	lambda {|a,b| a * b }
+				     when :QUOSHUNT
+				     	lambda {|a,b|
+				     	 	return Runtime::DoNotWant.new('DIVIDE BY ZERO') if b.zero?
+				     	 	a / b
+				     	}
+				     when :MOD
+				     	lambda {|a,b|
+				     	 	return Runtime::DoNotWant.new('DIVIDE BY ZERO') if b.zero?
+				     	 	a % b
+				     	}
+				     when :BIGGR
+				     	lambda {|a,b| [a, b].max }
+				     when :SMALLR
+				     	lambda {|a,b| [a, b].min }
+				     else
+				     	raise 'Unknown numeric dyadic operator'
+				     end
+				lambda {|a, b, world|
+					left = world.to_numeric(a)
+					return left if left.is_a?(Runtime::DoNotWant)
+					right = world.to_numeric(b)
+					return right if right.is_a?(Runtime::DoNotWant)
+					result = op.call(left, right)
+					return result if result.is_a?(Runtime::DoNotWant)
+					world.make_numeric(result)
+				}
+			end
+			
+			def boolean_dyadic_op(op_name)
+				msg = case op_name
+				      when :BOTH   then :&
+				      when :EITHER then :|
+				      when :WON    then :^
+				      else raise 'Unknown boolean dyadic operator'
+				      end
+				lambda {|a, b, world|
+					left = a.win?
+					right = b.win?
+					Runtime::Troof.new(world, left.send(msg, right))
+				}
+			end
+
+			def both_saem_op
+				lambda {|a, b, world| Runtime::Troof.new(world, a == b) }
+			end
+			def diffrint_op
+				lambda {|a, b, world| Runtime::Troof.new(world, a != b) }
+			end
+
+      def apply_dyadic(op, lexpr, rexpr)
+				lambda {|env|
+					lval = lexpr.call(env)
+					return lval if lval.is_a?(Runtime::DoNotWant)
+					rval = rexpr.call(env)
+					return rval if rval.is_a?(Runtime::DoNotWant)
+					op.call(lval, rval, env.world)
+				}
+      end
+			
+			def boolean_variadic_op(op_name)
+				msg = case op_name
+				      when :ALL then :all?
+				      when :ANY then :any?
+				      else raise 'Unknown boolean variadic operator'
+				      end
+				lambda {|world, args|
+					Runtime::Troof.new(world, args.map(&:win?).send(msg))
+				}
+			end
+			
+			def smoosh_op
+				lambda {|world, args|
+					yarns = args.map do |arg|
+						casted = Runtime::Yarn.cast(world, arg)
+						break casted if casted.is_a?(Runtime::DoNotWant)
+						casted
+					end
+					return yarns if yarns.is_a?(Runtime::DoNotWant)
+					Runtime::Yarn.new(world, yarns.join)
+				}
+			end
+			
+			def apply_variadic(op, args)
+				lambda {|env|
+					arg_vals = args.map do |arg|
+						val = arg.call(env)
+						break val if val.is_a?(Runtime::DoNotWant)
+						val
+					end
+					return arg_vals if arg_vals.is_a?(Runtime::DoNotWant)
+					op.call(env.world, arg_vals)
+				}
+			end
+			
+			def maek(val, type)
+				lambda {|env|
+					type_var = type.call(env)
+					return type_var if type_var.is_a?(Runtime::DoNotWant)
+					type_val = env.get(type_var)
+					return type_val if type_val.is_a?(Runtime::DoNotWant)
+					real_val = val.call(env)
+					return real_val if real_val.is_a?(Runtime::DoNotWant)
+					type_val.cast(env.world, real_val)
+				}
+			end
+			
+			def function_call(me, name, arg_exprs)
+				lambda {|env|
+					obj = me.call(env)
+					return obj if obj.is_a?(Runtime::DoNotWant)
+					func = obj.get([name])
+					return func if func.is_a?(Runtime::DoNotWant)
+					arg_vals = arg_exprs.map do |arg|
+						val = arg.call(env)
+						break val if val.is_a?(Runtime::DoNotWant)
+						val
+					end
+					return arg_vals if arg_vals.is_a?(Runtime::DoNotWant)
+					func.call(obj, arg_vals)
+				}
+			end
+			
+			def numbar(val)
+				lambda {|env| Runtime::Numbar.new(env.world, val) }
+			end
+			def numbr(val)
+				lambda {|env| Runtime::Numbr.new(env.world, val) }
+			end
     end
   end
 end

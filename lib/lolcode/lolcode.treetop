@@ -483,51 +483,33 @@ grammar Lolcode
 	rule found_yr
 		op:(
 			'FOUND' w ('YR' w)? {
-				def type
-					Runtime::Result
+				def to_sym
+					:FoundYr
 				end
 			}
 		/
 			'DO' w 'NOT' w 'WANT' w {
-				def type
-					Runtime::DoNotWant
+				def to_sym
+					:DoNotWant
 				end
 			}
 		)
 		expr
 		{
 			def compile
-				value = expr.compile
-				result_class = op.type
-				lambda {|env|
-					val = value.call(env)
-					return val if val.is_a?(Runtime::DoNotWant)
-					result_class.new(val)
-				}
+				Compile::found_yr(op.to_sym, expr.compile)
 			end
 		}
 	end
 
 	rule gtfo
-		op:(
-			'GTFO' {
-				def type
-					Runtime::GTFO
-				end
-			}
-		/
-			'WHATEVER' {
-				def type
-					Runtime::Whatever
-				end
-			}
-		)
+		op:('GTFO' / 'WHATEVER')
 		arg:(w ident)?
 		{
 			def compile
 				label = arg.ident.text_value unless arg.empty?
-				result_class = op.type
-				lambda {|env| result_class.new(label) }
+				kind = op.text_value.to_sym
+				Compile::gtfo(kind, label)
 			end
 		}
 	end
@@ -658,7 +640,9 @@ grammar Lolcode
 	/
 		liek
 	end
-
+	
+	# This is not part of monadic_op because it is used by o_hai_im.
+	# This form is an extension to Lolcode 1.3.
 	rule liek
 		(
 			'LIEK' (w 'A')?
@@ -668,12 +652,8 @@ grammar Lolcode
 		w expr
 		{
 			def compile
-				parent = expr.compile
-				lambda {|env|
-					parent_val = parent.call(env)
-					return parent_val if parent_val.is_a?(Runtime::DoNotWant)
-					Runtime::Bukkit.new(parent_val)
-				}
+				op = Compile::monadic_op(:LIEK)
+				Compile::apply_monadic(op, expr.compile)
 			end
 		}
 	end
@@ -681,120 +661,45 @@ grammar Lolcode
 	rule monadic_op
 		op_name:(
 			'NOT' {
-				def op
-					lambda {|a, world| Runtime::Troof.new(world, !a.win?) }
+				def to_sym
+					:NOT
 				end
 			}
 		)
 		w expr
 		{
 			def compile
-				op = op_name.op
-				arg = expr.compile
-				lambda {|env|
-					arg_val = arg.call(env)
-					return arg_val if arg_val.is_a?(Runtime::DoNotWant)
-					op.call(arg_val, env.world)
-				}
+				op = Compile::monadic_op(op_name.to_sym)
+				Compile::apply_monadic(op, expr.compile)
 			end
 		}
 	end
 
 	rule dyadic_op
 		op_name:(
-			name_part:( 'SUM' {
-					def op
-						lambda {|a,b| a + b }
-					end
-				}
-				/ 'DIFF' {
-					def op
-						lambda {|a,b| a - b }
-					end
-				}
-				/ 'PRODUKT' {
-					def op
-						lambda {|a,b| a * b }
-					end
-				}
-				/ 'QUOSHUNT' {
-					def op
-						lambda {|a,b|
-							return Runtime::DoNotWant.new('DIVIDE BY ZERO') if b.zero?
-							a / b
-						}
-					end
-				}
-				/ 'MOD' {
-					def op
-						lambda {|a,b|
-							return Runtime::DoNotWant.new('DIVIDE BY ZERO') if b.zero?
-							a % b
-						}
-					end
-				}
-				/ 'BIGGR' {
-					def op
-						lambda {|a,b| [a, b].max }
-					end
-				}
-				/ 'SMALLR' {
-					def op
-						lambda {|a,b| [a, b].min }
-					end
-				}
-			)
+			name_part:('SUM' / 'DIFF' / 'PRODUKT' / 'QUOSHUNT' / 'MOD' / 'BIGGR' / 'SMALLR')
 			w 'OF' {
 				def op
-					real_op = name_part.op
-					lambda {|a, b, world|
-						left = world.to_numeric(a)
-						return left if left.is_a?(Runtime::DoNotWant)
-						right = world.to_numeric(b)
-						return right if right.is_a?(Runtime::DoNotWant)
-						result = real_op.call(left, right)
-						return result if result.is_a?(Runtime::DoNotWant)
-						world.make_numeric(result)
-					}
+					Compile::numeric_dyadic_op(name_part.text_value.to_sym)
 				end
 			}
 		/
-			name_part:('BOTH' {
-					def op
-						:&
-					end
-				}
-				/ 'EITHER' {
-					def op
-						:|
-					end
-				}
-				/ 'WON' {
-					def op
-						:^
-					end
-				}
-			)
+			name_part:('BOTH' / 'EITHER' / 'WON')
 			w 'OF' {
 				def op
-					op_name = name_part.op
-					lambda {|a, b, world|
-						left = a.win?
-						right = b.win?
-						Runtime::Troof.new(world, left.send(op_name, right))
-					}
+					Compile::boolean_dyadic_op(name_part.text_value.to_sym)
 				end
 			}
 		/
 			'BOTH' w 'SAEM' {
 				def op
-					lambda {|a, b, world| Runtime::Troof.new(world, a == b) }
+					Compile::both_saem_op
 				end
 			}
 		/
 			'DIFFRINT' {
 				def op
-					lambda {|a, b, world| Runtime::Troof.new(world, a != b) }
+					Compile::diffrint_op
 				end
 			}
 		)
@@ -802,55 +707,25 @@ grammar Lolcode
 		{
 			def compile
 				op = op_name.op
-				lexpr = left.compile
-				rexpr = right.compile
-				lambda {|env|
-					lval = lexpr.call(env)
-					return lval if lval.is_a?(Runtime::DoNotWant)
-					rval = rexpr.call(env)
-					return rval if rval.is_a?(Runtime::DoNotWant)
-					op.call(lval, rval, env.world)
-				}
+				Compile::apply_dyadic(op, left.compile, right.compile)
 			end
 		}
 	end
 
 	rule variadic_op
 		op_name:(
-			name_part:(
-				'ALL' {
-					def msg
-						:all?
-					end
-				}
-			/
-				'ANY' {
-					def msg
-						:any?
-					end
-				}
-			)
+			name_part:('ALL' / 'ANY')
 			w 'OF'
 			{
 				def op
-					lambda {|world, args|
-						Runtime::Troof.new(world, args.map(&:win?).send(name_part.msg))
-					}
+					Compile::boolean_variadic_op(name_part.text_value.to_sym)
 				end
 			}
 		/
 			'SMOOSH'
 			{
 				def op
-					lambda {|world, args|
-						yarns = args.map do |arg|
-							casted = Runtime::Yarn.cast(world, arg)
-							break casted if casted.is_a?(Runtime::DoNotWant)
-							casted
-						end
-						return yarns if yarns.is_a?(Runtime::DoNotWant)
-						Runtime::Yarn.new(world, yarns.join)
-					}
+					Compile::smoosh_op
 				end
 			}
 		)
@@ -864,15 +739,7 @@ grammar Lolcode
 				rest.elements.each do |arg|
 					args.push arg.expr.compile
 				end
-				lambda {|env|
-					arg_vals = args.map do |arg|
-						val = arg.call(env)
-						break val if val.is_a?(Runtime::DoNotWant)
-						val
-					end
-					return arg_vals if arg_vals.is_a?(Runtime::DoNotWant)
-					op.call(env.world, arg_vals)
-				}
+				Compile::apply_variadic(op, args)
 			end
 		}
 	end
@@ -887,17 +754,7 @@ grammar Lolcode
 		'MAEK' w expr w ('A' w)? var
 		{
 			def compile
-				val = expr.compile
-				type = var.compile
-				lambda {|env|
-					type_var = type.call(env)
-					return type_var if type_var.is_a?(Runtime::DoNotWant)
-					type_val = env.get(type_var)
-					return type_val if type_val.is_a?(Runtime::DoNotWant)
-					real_val = val.call(env)
-					return real_val if real_val.is_a?(Runtime::DoNotWant)
-					type_val.cast(env.world, real_val)
-				}
+				Compile::maek(expr.compile, var.compile)
 			end
 		}
 	end
@@ -919,19 +776,7 @@ grammar Lolcode
 						arg_exprs.push arg.expr.compile
 					end
 				end
-				lambda {|env|
-					obj = me.call(env)
-					return obj if obj.is_a?(Runtime::DoNotWant)
-					func = obj.get([name])
-					return func if func.is_a?(Runtime::DoNotWant)
-					arg_vals = arg_exprs.map do |arg|
-						val = arg.call(env)
-						break val if val.is_a?(Runtime::DoNotWant)
-						val
-					end
-					return arg_vals if arg_vals.is_a?(Runtime::DoNotWant)
-					func.call(obj, arg_vals)
-				}
+				Compile::function_call(me, name, arg_exprs)
 			end
 		}
 	end
@@ -1002,8 +847,7 @@ grammar Lolcode
 			end
 
 			def compile
-				val = value
-				lambda {|env| Runtime::Numbar.new(env.world, val) }
+				Compile::numbar(self.value)
 			end
 		}
 	end
@@ -1015,8 +859,7 @@ grammar Lolcode
 			end
 
 			def compile
-				val = value
-				lambda {|env| Runtime::Numbr.new(env.world, val) }
+				Compile.numbr(self.value)
 			end
 		}
 	end
@@ -1078,6 +921,7 @@ grammar Lolcode
 		/
 			':[' [A-Z ]+ ']' {
 				def char_value
+					raise "Named characters are not supported in this implementation of Lolcode :-("
 					# FIXME NAMED CHARS HOW THE HECK
 					text_value
 				end
