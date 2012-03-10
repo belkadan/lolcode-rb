@@ -707,9 +707,10 @@ module Lolcode
             end
           }
         end
-        @@builtins += names.map(&:capitalize).map do |name|
+        classes = names.map(&:capitalize).map do |name|
           Lolcode::Runtime.const_get(name) if Lolcode::Runtime.const_defined?(name)
         end.reject(&:nil?)
+        @@builtins.concat(classes)
       end
 
       @@builtins = []
