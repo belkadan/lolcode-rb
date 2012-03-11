@@ -766,9 +766,9 @@ module Lolcode
             return DoNotWant.new('No such loop: ' + result.name) if result.name
           end
         rescue SystemCallError
-          return DoNotWant.new('CANNOT HAS ' + filename.inspect)
+          return DoNotWant.new('CANNOT HAS ' + filename.to_str.inspect)
         rescue IOError
-          return DoNotWant.new('CANNOT HAS ' + filename.inspect)
+          return DoNotWant.new('CANNOT HAS ' + filename.to_str.inspect)
         end
         loaded_module
       end
