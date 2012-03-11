@@ -1,5 +1,7 @@
 HAI 1.3
 
+BTW This test is based on the Lolcode specification.
+
 O HAI IM pokeman
 	I HAS A name ITZ "pikachu"
 	HOW IZ I pikachuin YR face

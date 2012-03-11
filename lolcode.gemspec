@@ -11,20 +11,24 @@ Gem::Specification.new do |s|
   s.summary     = "A Lolcode implementation"
   s.description = "An implementation of Lolcode 1.3, with a few extensions. Can execute scripts or run interactively."
 
+  s.required_ruby_version     = '>= 1.8.5'
   s.required_rubygems_version = ">= 1.3.6"
 
   # lol - required for validation
   s.rubyforge_project         = "nowarning"
 
   # If you have other dependencies, add them here
-  s.add_dependency "treetop", "~> 1.4"
+  s.add_runtime_dependency "treetop", "~> 1.4"
+  s.add_development_dependency "minitest", "~> 2.11"
 
   # If you need to check in files that aren't .rb files, add them here
-  s.files        = Dir["{lib}/**/*.rb", "bin/*", "examples/*", "*.md"]
+  s.files        = Dir["{lib}/**/*.rb", "bin/*", "examples/*", "*.md",
+                       "test/*.rb", "test/feature/**", "test/simple/**"]
   s.require_path = 'lib'
 
   # If you need an executable, add it here
   s.executables = ["lolcode"]
+  s.test_files  = Dir["test/test_*.rb"]
 
   # If you have C extensions, uncomment this line
   # s.extensions = "ext/extconf.rb"

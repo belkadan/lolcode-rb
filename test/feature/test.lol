@@ -39,6 +39,7 @@ O HAI IM test
 			GTFO
 		OIC
 
+
 		MAH counter R 0
 		PLZ
 			ME IZ testin MKAY
@@ -49,7 +50,7 @@ O HAI IM test
 			VISIBLE ":>" problem ":)"
 		O NOES WIN
 			VISIBLE FAIL ":>" MAH name
-			VISIBLE "DO NOT WANT: " IT
+			VISIBLE ":>DO NOT WANT: " IT ":)"
 		KTHX
 	IF U SAY SO
 

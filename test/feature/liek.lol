@@ -54,7 +54,8 @@ O HAI IM primitive_test IM LIEK test
 		ME IZ checkin 2.0 IZ liek NUMBAR MKAY AN "2.0"
 		ME IZ checkin 2.0 IZ liek BUKKIT MKAY AN "2.0/bukkit"
 
-		CAN HAS "btw", I HAS A loaded ITZ IT
+		BTW this should have its own helper
+		CAN HAS "module_scope_helper", I HAS A loaded ITZ IT
 		ME IZ checkin loaded IZ liek MODULE MKAY AN "module"
 		ME IZ checkin loaded IZ liek BUKKIT MKAY AN "module/bukkit"
 	IF U SAY SO
