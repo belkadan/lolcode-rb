@@ -90,7 +90,7 @@ HOW IZ I encoding YR message AN YR tree
 	message, O RLY?
 	YA RLY
 		I IZ encoding YR message'Z rest AN tree, I HAS A rest ITZ IT
-		I IZ stepping YR message'Z first
+		I IZ stepping YR message'Z first AN tree
 		I IZ appending IT AN rest
 	NO WAI
 		NOOB
@@ -161,7 +161,7 @@ NOOB, I HAS A sample_message ITZ IT
 
 I IZ decoding YR sample_message AN sample_tree
 
-CAN HAS "tests/line"
+CAN HAS "../tests/line"
 LINE IZ forming...
 	1 AN 1 AN 1 AN 1 AN 0 AN...
 	1 AN 1 AN 1 AN 1 AN 0 AN...

@@ -66,7 +66,7 @@ IF U SAY SO
 
 ME IZ frist, O RLY?
 YA RLY
-	CAN HAS "tests/test"
+	CAN HAS "../tests/test"
 	
 	O HAI IM A test
 		MAH name R "listing"
