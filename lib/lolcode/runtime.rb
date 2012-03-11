@@ -751,7 +751,7 @@ module Lolcode
         path = filename.to_str
         path += '.lol' unless path.end_with? '.lol'
         # FIXME lolpath?
-        path = File.join(@wd.last, path)
+        path = File.expand_path(path, @wd.last)
         # FIXME better error handling
         # Also see the exceptions raised by run()
         begin
@@ -765,7 +765,7 @@ module Lolcode
             return result if result.is_a?(DoNotWant)
             return DoNotWant.new('No such loop: ' + result.name) if result.name
           end
-        rescue SystemCallError
+        rescue SystemCallError => e
           return DoNotWant.new('CANNOT HAS ' + filename.to_str.inspect)
         rescue IOError
           return DoNotWant.new('CANNOT HAS ' + filename.to_str.inspect)
