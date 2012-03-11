@@ -118,8 +118,13 @@ module Lolcode
 				lambda {|env|
 					result = action.call(env) if action
 					if result and result.is_a? Runtime::DoNotWant
-						env.set(Runtime::Environment::It, result.value)
-						chosen = handlers.find do |cond, action|
+						result_val = result.value
+						# A bit of a hack, for runtime library errors.
+						if !result_val.is_a? Runtime::Bukkit
+							result_val = Runtime::Yarn.new(env.world, result_val)
+						end
+						env.set(Runtime::Environment::It, result_val)
+						chosen = handlers.find do |cond, _|
 							test = cond.call(env)
 							break test if test.is_a?(Runtime::DoNotWant)
 							test.win?
