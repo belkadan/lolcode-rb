@@ -5,12 +5,16 @@ Gem::Specification.new do |s|
   s.name        = "lolcode"
   s.version     = Lolcode::VERSION
   s.platform    = Gem::Platform::RUBY
-  s.authors     = ["Jordy Rose"]
-  s.email       = ["jrose@belkadan.com"]
+  s.author      = "Jordy Rose"
+  s.email       = "jrose@belkadan.com"
   s.homepage    = "https://github.com/belkadan/lolcode-rb"
-  s.summary     = "A Lolcode implementation in Ruby"
+  s.summary     = "A Lolcode implementation"
+  s.description = "An implementation of Lolcode 1.3, with a few extensions. Can execute scripts or run interactively."
 
   s.required_rubygems_version = ">= 1.3.6"
+
+  # lol - required for validation
+  s.rubyforge_project         = "nowarning"
 
   # If you have other dependencies, add them here
   s.add_dependency "treetop", "~> 1.4"
