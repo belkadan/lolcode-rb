@@ -1,8 +1,4 @@
-#!/usr/bin/ruby
-
-# FIXME use proper Gem packaging here
-require 'lib/lolcode/compile'
-require 'lib/lolcode/runtime'
+require 'lolcode/runtime'
 
 module Lolcode
   def self.run_interpreter(options = {})
@@ -33,9 +29,5 @@ module Lolcode
       success
     end
   end
-end
-
-if $0 == __FILE__
-  Lolcode::load(ARGV[0]) if ARGV[0]
 end
 

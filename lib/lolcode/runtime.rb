@@ -1,3 +1,5 @@
+require 'lolcode/compile'
+
 module Lolcode
   module Runtime
     class GTFO
