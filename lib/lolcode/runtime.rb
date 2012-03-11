@@ -53,7 +53,8 @@ module Lolcode
         last = var.last
         if var.length == 1
           # FIXME: some kind of RuntimeError type
-          return DoNotWant.new(last.inspect + ' does not exist') unless exists? last
+          return DoNotWant.new(last.inspect + ' does not exist (set)') unless exists? last
+					raise "Not a Lolcode value! '#{val}'" if !val.is_a?(Runtime::Bukkit)
           @values[last] = val
           nil
         else
@@ -67,7 +68,7 @@ module Lolcode
       def get(var)
         first = var[0]
         # FIXME: some kind of RuntimeError type
-        return DoNotWant.new(first.inspect + ' does not exist') unless @parent or @values.has_key?(first)
+        return DoNotWant.new(first.inspect + ' does not exist (get)') unless @parent or @values.has_key?(first)
         base = @values[first]
         if base
           if var.length == 1 then base else base.get(var.drop(1)) end
